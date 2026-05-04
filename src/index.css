@@ -1,0 +1,183 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─── Koudou design tokens — source of truth ─────────────────────────────
+   Light theme: dark navy sidebar, white content area, gold/amber accent.
+   Ported from design_handoff_koudou/src/styles.css. */
+:root {
+  /* Sidebar (dark navy) */
+  --side-bg: #1a2332;
+  --side-bg-hover: #243044;
+  --side-bg-active: #2d3a52;
+  --side-text: #cbd5e1;
+  --side-text-muted: #64748b;
+  --side-text-active: #ffffff;
+  --side-border: #2d3a52;
+
+  /* Brand (gold/amber wordmark) */
+  --brand: #f4b942;
+  --brand-strong: #d97706;
+
+  /* Content area (light) */
+  --bg: #f8fafc;
+  --bg-elevated: #ffffff;
+  --bg-hover: #f1f5f9;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  /* Accent / CTA */
+  --accent: #1e3a8a;
+  --accent-text: #ffffff;
+
+  /* Status (job stage) */
+  --status-applied: #94a3b8;
+  --status-screening: #3b82f6;
+  --status-interview: #f59e0b;
+  --status-offer: #10b981;
+
+  /* Priority */
+  --priority-high: #dc2626;
+  --priority-med: #f59e0b;
+  --priority-low: #94a3b8;
+
+  /* Warmth */
+  --warmth-referral: #10b981;
+  --warmth-warm: #3b82f6;
+  --warmth-cold: #94a3b8;
+
+  /* Type */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+
+  /* shadcn primitives — mapped to Koudou tokens */
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--bg-elevated);
+  --card-foreground: var(--text);
+  --popover: var(--bg-elevated);
+  --popover-foreground: var(--text);
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-text);
+  --secondary: var(--bg-hover);
+  --secondary-foreground: var(--text);
+  --muted: var(--bg-hover);
+  --muted-foreground: var(--text-muted);
+  --accent-color: var(--bg-hover);
+  --accent-foreground: var(--text);
+  --destructive: var(--priority-high);
+  --destructive-foreground: #ffffff;
+  --input: var(--border);
+  --ring: var(--accent);
+  --radius: 0.625rem;
+}
+
+/* ─── Tailwind theme — exposes tokens as utility classes ─────────────── */
+@theme inline {
+  /* Colors — flat tokens, named to mirror the prototype */
+  --color-side-bg: var(--side-bg);
+  --color-side-bg-hover: var(--side-bg-hover);
+  --color-side-bg-active: var(--side-bg-active);
+  --color-side-text: var(--side-text);
+  --color-side-text-muted: var(--side-text-muted);
+  --color-side-text-active: var(--side-text-active);
+  --color-side-border: var(--side-border);
+
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+
+  --color-app-bg: var(--bg);
+  --color-elevated: var(--bg-elevated);
+  --color-hover: var(--bg-hover);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-ink: var(--text);
+  --color-ink-secondary: var(--text-secondary);
+  --color-ink-muted: var(--text-muted);
+
+  --color-accent-strong: var(--accent);
+
+  --color-status-applied: var(--status-applied);
+  --color-status-screening: var(--status-screening);
+  --color-status-interview: var(--status-interview);
+  --color-status-offer: var(--status-offer);
+
+  --color-priority-high: var(--priority-high);
+  --color-priority-med: var(--priority-med);
+  --color-priority-low: var(--priority-low);
+
+  --color-warmth-referral: var(--warmth-referral);
+  --color-warmth-warm: var(--warmth-warm);
+  --color-warmth-cold: var(--warmth-cold);
+
+  /* shadcn-compatible aliases */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent-color);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --radius-card: 10px;
+  --radius-pill: 4px;
+  --radius-btn: 6px;
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: var(--side-bg-active);
+}

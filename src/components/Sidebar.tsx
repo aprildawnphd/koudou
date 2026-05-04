@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import {
   Sparkles,
   Sun,
@@ -16,8 +16,10 @@ import {
   HelpCircle,
   PanelLeftClose,
   ChevronRight,
+  LogOut,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { supabase } from '@/integrations/supabase/client'
 import type { LucideIcon } from 'lucide-react'
 
 type Item = {
@@ -100,6 +102,24 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
+function SignOutButton() {
+  const navigate = useNavigate()
+  async function handleClick() {
+    await supabase.auth.signOut()
+    navigate('/auth', { replace: true })
+  }
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className="mb-px flex w-full items-center gap-3 rounded-[6px] px-2.5 py-[7px] text-sm text-side-text transition-colors hover:bg-side-bg-hover hover:text-side-text-active"
+    >
+      <LogOut size={16} className="shrink-0 text-brand opacity-90" />
+      <span className="flex-1 truncate text-left">Sign out</span>
+    </button>
+  )
+}
+
 export function Sidebar() {
   return (
     <aside className="sidebar-scroll flex flex-col overflow-y-auto bg-side-bg px-2.5 py-3.5">
@@ -160,7 +180,8 @@ export function Sidebar() {
         {footerItems.map((item) => (
           <NavItem key={item.to} {...item} />
         ))}
-        <div className="mt-1 flex cursor-pointer items-center gap-2.5 rounded-[6px] p-2 hover:bg-side-bg-hover">
+        <SignOutButton />
+        <div className="mt-1 flex cursor-default items-center gap-2.5 rounded-[6px] p-2">
           <div className="grid size-7 place-items-center rounded-full bg-brand text-[11px] font-bold text-side-bg">
             AD
           </div>

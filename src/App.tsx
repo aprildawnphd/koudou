@@ -16,6 +16,7 @@ import { Insights } from '@/pages/Insights'
 import { Profile } from '@/pages/Profile'
 import { Settings } from '@/pages/Settings'
 import { Help } from '@/pages/Help'
+import { NotFound } from '@/pages/NotFound'
 
 function App() {
   return (
@@ -25,7 +26,7 @@ function App() {
         <Route path="/preview/jobs" element={<JobsPreview />} />
       )}
       <Route element={<AppLayout />}>
-        <Route index element={<Navigate to="/getting-started" replace />} />
+        <Route index element={<Navigate to="/today" replace />} />
         <Route path="/getting-started" element={<GettingStarted />} />
         <Route path="/today" element={<Today />} />
         <Route path="/jobs" element={<Jobs />} />
@@ -40,6 +41,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/help" element={<Help />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   )

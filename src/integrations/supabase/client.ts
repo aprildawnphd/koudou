@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from './types'
 
 const url = import.meta.env.VITE_SUPABASE_URL
@@ -10,17 +10,19 @@ if (!url || !anonKey) {
   )
 }
 
-// Koudou shares the Supabase project with the legacy Lovable build.
-// Field-name mapping the UI applies on top of the live schema:
-//   jobs.title       → role
-//   jobs.urgency     → priority (low | medium | high)
-//   jobs.fit_score   → match score (0–5)
-//   jobs.applied_date → "applied N days ago" / due-date display
-//   jobs.company is a free-text string, not an FK to target_companies.
-export const supabase = createClient<Database>(url, anonKey, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
-  },
-})
+// Cache the client on globalThis so HMR re-evaluations of this module don't
+// spawn a fresh GoTrueClient each time (which logs a "Multiple GoTrueClient
+// instances detected" warning in dev). Production builds skip this branch
+// because no module re-evaluation happens after initial load.
+type Cached = { __koudou_supabase?: SupabaseClient<Database> }
+const g = globalThis as unknown as Cached
+
+export const supabase: SupabaseClient<Database> =
+  g.__koudou_supabase ??
+  (g.__koudou_supabase = createClient<Database>(url, anonKey, {
+    auth: {
+      storage: localStorage,
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  }))

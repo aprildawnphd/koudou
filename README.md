@@ -146,7 +146,7 @@ Sessions are scoped tight in `../design_handoff_koudou/README.md`:
 1. ✅ **Session 1** — Scaffold + sidebar shell + auth route
 2. ✅ **Session 2** — Schema + Pipeline (Jobs) view + DetailPanel + Google OAuth
 3. ✅ **Session 3** — Today view + actionEngine port
-4. **Session 4** — Network + Target Companies + Getting Started
+4. ✅ **Session 4** — Network + Target Companies + Getting Started + brand marks
 5. **Session 5** — AI features (Job Search → Cover Letters → Skill Gap)
 6. **Session 6** — Insights + Job Boards + Library polish
 7. **Session 7** — Command palette, polish, deploy

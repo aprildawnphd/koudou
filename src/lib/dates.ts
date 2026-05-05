@@ -38,3 +38,18 @@ export function dueDisplay(dateStr: string | null): {
   if (days <= 7) return { text: shortDate(d), cls: 'soon' }
   return { text: shortDate(d), cls: '' }
 }
+
+// Conversational "time since" label — used for last-touch on contact rows.
+// Tighter than appliedAgoText: weeks/months/years bucket.
+export function lastTouchText(ts: string | null): string {
+  if (!ts) return '—'
+  const d = new Date(ts)
+  if (isNaN(d.getTime())) return '—'
+  const days = daysBetween(d, new Date())
+  if (days < 0) return shortDate(d)
+  if (days < 1) return 'today'
+  if (days < 7) return `${days}d ago`
+  if (days < 28) return `${Math.floor(days / 7)}w ago`
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`
+  return `${Math.floor(days / 365)}y ago`
+}

@@ -31,3 +31,4 @@ dist-ssr
 # Local-only working files
 PROJECT.md
 .claude/settings.local.json
+_archive/

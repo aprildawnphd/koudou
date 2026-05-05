@@ -79,7 +79,7 @@ export function Auth() {
       <div className="w-full max-w-[400px] rounded-[12px] border border-line bg-elevated p-8 shadow-sm">
         <div className="mb-6 flex items-center gap-3">
           <img
-            src="/koudou-icon.png"
+            src="/brand/koudou-mark-dark.png"
             alt="Koudou"
             className="h-10 w-10 rounded-[8px]"
           />

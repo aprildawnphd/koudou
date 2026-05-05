@@ -126,7 +126,7 @@ export function Sidebar() {
       {/* Workspace header */}
       <div className="mb-1 flex items-center gap-2.5 px-1.5 pt-1.5 pb-3.5">
         <img
-          src="/koudou-icon.png"
+          src="/brand/koudou-mark-light.png"
           alt="Koudou"
           className="block h-[30px] w-[30px] shrink-0 rounded-[7px]"
         />

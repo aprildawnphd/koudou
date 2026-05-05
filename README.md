@@ -2,6 +2,41 @@
 
 A focused job-search CRM. Built from the design handoff in [`design_handoff_koudou`](../design_handoff_koudou).
 
+## What it looks like
+
+![Today — session home with Up Next queue and This Week strip](screenshots/today.png)
+
+<details>
+<summary>More views</summary>
+
+**Jobs** — status-grouped pipeline (interview / screening / applied / offer)
+
+![Jobs](screenshots/jobs.png)
+
+**Job detail panel** — slide-in with status, priority, match score, and activity timeline
+
+![Job detail panel](screenshots/jobs-detail.png)
+
+**Network** — contacts grouped by warmth (Champions / Warm / Cold)
+
+![Network](screenshots/network.png)
+
+**Target Companies** — three tiers with per-row aggregates (jobs tracked, contacts, active apps)
+
+![Target Companies](screenshots/targets.png)
+
+**Getting Started** — entry-point chooser with adaptive "this week's focus" callout
+
+![Getting Started](screenshots/getting-started.png)
+
+**Sign in** — email/password or Google OAuth via Supabase
+
+![Sign in](screenshots/auth.png)
+
+</details>
+
+> Screenshots are populated from `supabase/seed.sql`. Names are deliberately fictional.
+
 ## Stack
 
 - **Build:** Vite + TypeScript

@@ -1,6 +1,6 @@
 # Koudou
 
-A focused job-search CRM. Built from the design handoff in [`design_handoff_koudou`](../design_handoff_koudou).
+A focused job-search CRM. Built from a static design-handoff prototype (`design_handoff_koudou`, currently private).
 
 ## What it looks like
 
@@ -56,7 +56,7 @@ A private demo runs at **https://koudou.pages.dev/**. Sign-in is gated to a Goog
 Koudou was first built on Lovable, where iteration on the JTBD framework, the
 design system, and the product direction happened. After that build accumulated
 UX cruft, the surface area was redesigned in Claude Design — the static
-prototype now living in [`../design_handoff_koudou`](../design_handoff_koudou) —
+prototype lives in a sibling `design_handoff_koudou` repo (currently private) —
 and ported here as a clean Vite + React + Supabase rebuild.
 
 The Lovable predecessor is preserved as a private archive: frozen, read-only,

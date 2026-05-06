@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search as SearchIcon, Sparkles, ExternalLink, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
+import { Search as SearchIcon, Sparkles, ExternalLink, ChevronDown, ChevronUp, RefreshCw, Target } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { invokeEdge, EdgeError } from '@/lib/edgeFunctions'
 import { Button } from '@/components/ui/Button'
@@ -18,7 +18,8 @@ type SuggestedJob = {
   type: 'remote' | 'hybrid' | 'onsite'
   salary: string
   match_score: number
-  match_reason: string
+  description?: string // 1 sentence: what the role IS (added in 6.2 schema)
+  match_reason: string // 1-2 sentences: why it fits THIS candidate, with dimensions
   url: string
   posted_ago?: string
   hiring_contact?: string
@@ -62,25 +63,52 @@ function MatchScoreHelp() {
   return (
     <InfoPopover title="What match score means">
       <p>
-        The AI's subjective fit score (0–100) for this suggestion against your
-        profile. Not a formula.
+        The AI's fit score (0–100) considers five dimensions of your profile:
+      </p>
+      <ul className="space-y-1 pl-3">
+        <li>
+          <strong className="text-ink">Role match</strong> — title alignment
+          with your target_roles
+        </li>
+        <li>
+          <strong className="text-ink">Location / remote</strong> — geographic +
+          remote-preference fit
+        </li>
+        <li>
+          <strong className="text-ink">Salary</strong> — band alignment with
+          your floor (when posted)
+        </li>
+        <li>
+          <strong className="text-ink">Skills overlap</strong> — your profile
+          skills vs. the posting's stated skills
+        </li>
+        <li>
+          <strong className="text-ink">Industry alignment</strong> — your target
+          industries vs. the company's
+        </li>
+      </ul>
+      <p className="text-[11px] text-ink-muted">
+        Each result's <strong className="text-warmth-referral">match
+        assessment</strong> (gold row) cites the specific dimensions that
+        drove the score — read it to see which fit and which don't.
       </p>
       <ul className="space-y-1 pl-3">
         <li>
           <strong className="text-warmth-referral">80+</strong> — strong fit
+          across most dimensions
         </li>
         <li>
-          <strong className="text-brand-strong">60–79</strong> — moderate fit,
-          usually with a stretch dimension
+          <strong className="text-brand-strong">60–79</strong> — moderate fit;
+          one or two stretch dimensions
         </li>
         <li>
           <strong className="text-ink-muted">&lt;60</strong> — weak /
-          exploratory
+          exploratory; significant gaps
         </li>
       </ul>
-      <p>
-        Not deterministic — same search may shift ±5 points across runs.
-        Compare scores within a single search, not across runs.
+      <p className="text-[11px] text-ink-muted">
+        Not deterministic — scores may shift ±5 across runs. Compare within a
+        single search, not across.
       </p>
     </InfoPopover>
   )
@@ -455,9 +483,28 @@ export function Search() {
                         </>
                       )}
                     </div>
-                    <p className="mt-2 text-[13px] text-ink-secondary">
-                      {r.match_reason}
-                    </p>
+                    {r.description && (
+                      <p className="mt-2 text-[13px] text-ink-secondary">
+                        {r.description}
+                      </p>
+                    )}
+                    {r.match_reason && (
+                      <div className="mt-2 flex items-start gap-1.5 rounded-[6px] border border-warmth-referral/20 bg-warmth-referral/5 px-2.5 py-1.5">
+                        <Target
+                          size={12}
+                          className="mt-0.5 shrink-0 text-warmth-referral"
+                        />
+                        <p className="text-[12.5px] font-medium leading-[1.5] text-ink">
+                          {r.match_reason}
+                        </p>
+                      </div>
+                    )}
+                    {/* Fallback: if description is missing (legacy results), show match_reason in the description spot too */}
+                    {!r.description && !r.match_reason && (
+                      <p className="mt-2 text-[13px] text-ink-secondary">
+                        (no description provided)
+                      </p>
+                    )}
                     {r.skills && r.skills.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
                         {r.skills.slice(0, 8).map((s) => (

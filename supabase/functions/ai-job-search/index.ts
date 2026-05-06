@@ -95,10 +95,15 @@ const generateJobsTool = {
               type: 'number',
               description: 'How well this matches the profile, 0-100',
             },
+            description: {
+              type: 'string',
+              description:
+                "1 sentence describing what the role IS — the team, scope, or company context. Factual, not evaluative. Example: 'Stripe is hiring a Head of Product for Payments Infrastructure to lead pricing and merchant tools.' Do NOT explain why it matches the candidate here.",
+            },
             match_reason: {
               type: 'string',
               description:
-                "Why this is a good match in 1-2 sentences. Specific to the candidate's profile.",
+                "1-2 sentences explaining WHY this is a good match for THIS specific candidate. Reference the strongest 2-3 fit dimensions and any notable gaps from: role match, location/remote alignment, salary fit, skills overlap, industry alignment. Be specific. Example: 'Strong role + industry alignment; remote-friendly. Skills overlap 7 of 10. Salary $20K below your floor.' Do NOT describe the role itself here.",
             },
             url: {
               type: 'string',
@@ -135,6 +140,7 @@ const generateJobsTool = {
             'type',
             'salary',
             'match_score',
+            'description',
             'match_reason',
             'url',
             'job_source',
@@ -173,7 +179,7 @@ Deno.serve(async (req) => {
     const rl = await checkRateLimit({
       userId,
       functionName: 'ai-job-search',
-      maxCalls: 10,
+      maxCalls: 3,
       windowMinutes: 1440,
       corsHeaders,
     })
@@ -304,6 +310,9 @@ HARD RULES — VIOLATING THESE PRODUCES UNUSABLE OUTPUT:
 - For job_source="web": URL must be the EXACT url from the search result. Do not modify, shorten, or fabricate any part of it.
 - For job_source="ai-suggestion": URL must be the company's careers page (e.g., "stripe.com/careers"). Never fabricate a specific job-posting URL.
 - Match scores must reflect honest fit assessment against the profile. Do not inflate.
+- "description" field is a 1-sentence factual summary of what the role IS (team, scope, company). Do NOT explain why it matches the candidate here.
+- "match_reason" field is 1-2 sentences explaining WHY this is a good match for THIS candidate, citing specific dimensions (role, location, salary, skills overlap, industry). Do NOT describe the role here.
+- These fields must NOT duplicate each other. Description = "what is this?" Match reason = "why does this fit me?"
 - ${remoteOnly ? 'ONLY include REMOTE positions.' : ''}
 - ${recencyInstruction}
 - ${creativityInstruction}

@@ -24,6 +24,7 @@ type JobStatus =
   | 'closed'
 type Priority = 'low' | 'medium' | 'high'
 type Warmth = 'champion' | 'warm' | 'cold'
+type RemotePreference = 'remote' | 'hybrid' | 'onsite' | 'flexible'
 
 export type Database = {
   public: {
@@ -34,6 +35,15 @@ export type Database = {
           name: string | null
           target_roles: string[]
           primary_resume_id: string | null
+          resume_text: string | null
+          summary: string | null
+          locations: string[]
+          remote_preference: RemotePreference | null
+          min_base_salary: number | null
+          must_haves: string[]
+          nice_to_haves: string[]
+          industries: string[]
+          skills: string[]
           created_at: string
           updated_at: string
         }>
@@ -42,10 +52,37 @@ export type Database = {
           name?: string | null
           target_roles?: string[]
           primary_resume_id?: string | null
+          resume_text?: string | null
+          summary?: string | null
+          locations?: string[]
+          remote_preference?: RemotePreference | null
+          min_base_salary?: number | null
+          must_haves?: string[]
+          nice_to_haves?: string[]
+          industries?: string[]
+          skills?: string[]
           created_at?: string
           updated_at?: string
         }
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>
+        Relationships: []
+      }
+      api_rate_limits: {
+        Row: RowOf<{
+          id: string
+          user_id: string
+          function_name: string
+          called_at: string
+        }>
+        Insert: {
+          id?: string
+          user_id: string
+          function_name: string
+          called_at?: string
+        }
+        Update: Partial<
+          Database['public']['Tables']['api_rate_limits']['Insert']
+        >
         Relationships: []
       }
       target_companies: {

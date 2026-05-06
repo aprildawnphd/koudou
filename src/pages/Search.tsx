@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search as SearchIcon, Sparkles, ExternalLink, HelpCircle } from 'lucide-react'
+import { Search as SearchIcon, Sparkles, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { invokeEdge } from '@/lib/edgeFunctions'
 import { Button } from '@/components/ui/Button'
 import { Pill } from '@/components/ui/Pill'
+import { InfoPopover } from '@/components/ui/InfoPopover'
 import { CompanyFavicon } from '@/components/CompanyFavicon'
 import { ProfileCompletenessBanner } from '@/components/ProfileCompleteness'
 import { cn } from '@/lib/utils'
@@ -28,29 +29,54 @@ type SuggestedJob = {
 const inputClass =
   'w-full rounded-[6px] border border-line bg-elevated px-3 py-2 text-[13px] text-ink outline-none focus:border-accent-strong focus:ring-2 focus:ring-accent-strong/20'
 
-const CREATIVITY_TOOLTIP =
-  'Three different instructions sent to the AI:\n\n' +
-  '• Conservative — only near-perfect matches to your stated targets.\n' +
-  '• Balanced — close matches plus a few stretches that leverage transferable skills.\n' +
-  '• Exploratory — adjacent roles, unexpected industries, and lateral moves.\n\n' +
-  'Not an algorithm — these literally change the prompt the AI follows.'
-
-const MATCH_SCORE_TOOLTIP =
-  "The AI's subjective fit score (0–100) for this suggestion against your profile.\n\n" +
-  '• 80+ green = strong fit\n' +
-  '• 60–79 gold = moderate fit, usually with a stretch dimension\n' +
-  '• <60 grey = weak / exploratory\n\n' +
-  "Not deterministic — same search may shift ±5 points across runs. Compare scores within a single search, not across runs."
-
-function InfoIcon({ tooltip }: { tooltip: string }) {
+function CreativityHelp() {
   return (
-    <span
-      className="inline-flex cursor-help align-middle text-ink-muted hover:text-ink-secondary"
-      title={tooltip}
-      aria-label={tooltip}
-    >
-      <HelpCircle size={11} />
-    </span>
+    <InfoPopover title="What Creativity does">
+      <p>Three different instructions sent to the AI — not an algorithm:</p>
+      <ul className="space-y-1 pl-3">
+        <li>
+          <strong className="text-ink">Conservative</strong> — only
+          near-perfect matches to your stated targets.
+        </li>
+        <li>
+          <strong className="text-ink">Balanced</strong> — close matches plus a
+          few stretches that leverage transferable skills.
+        </li>
+        <li>
+          <strong className="text-ink">Exploratory</strong> — adjacent roles,
+          unexpected industries, lateral moves.
+        </li>
+      </ul>
+      <p>These literally change the prompt the AI follows.</p>
+    </InfoPopover>
+  )
+}
+
+function MatchScoreHelp() {
+  return (
+    <InfoPopover title="What match score means">
+      <p>
+        The AI's subjective fit score (0–100) for this suggestion against your
+        profile. Not a formula.
+      </p>
+      <ul className="space-y-1 pl-3">
+        <li>
+          <strong className="text-warmth-referral">80+</strong> — strong fit
+        </li>
+        <li>
+          <strong className="text-brand-strong">60–79</strong> — moderate fit,
+          usually with a stretch dimension
+        </li>
+        <li>
+          <strong className="text-ink-muted">&lt;60</strong> — weak /
+          exploratory
+        </li>
+      </ul>
+      <p>
+        Not deterministic — same search may shift ±5 points across runs.
+        Compare scores within a single search, not across runs.
+      </p>
+    </InfoPopover>
   )
 }
 
@@ -64,6 +90,7 @@ export function Search() {
   const [running, setRunning] = useState(false)
   const [results, setResults] = useState<SuggestedJob[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [formExpanded, setFormExpanded] = useState(true)
 
   // Profile completeness check — drives the inline banner + a friendly
   // guard so the user gets a clear nudge before the edge function rejects.
@@ -98,11 +125,20 @@ export function Search() {
         },
       })
       setResults(payload.data ?? [])
+      // Collapse the form once results land — gives the results list more
+      // vertical room. User can re-expand via the chip's Edit button.
+      setFormExpanded(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Search failed')
     } finally {
       setRunning(false)
     }
+  }
+
+  const creativityLabel: Record<typeof creativityLevel, string> = {
+    conservative: 'Conservative',
+    balanced: 'Balanced',
+    exploratory: 'Exploratory',
   }
 
   return (
@@ -131,8 +167,60 @@ export function Search() {
           </div>
         )}
 
-        {/* Search form */}
+        {/* Collapsed summary chip — shown after a search has run, when the
+            form is collapsed to give the results list more vertical space. */}
+        {!formExpanded && results && (
+          <section className="mx-7 mb-4">
+            <div className="flex items-center gap-3 rounded-[10px] border border-line bg-elevated px-4 py-2.5">
+              <SearchIcon size={14} className="text-ink-muted" />
+              <div className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-secondary">
+                {focusKeywords && (
+                  <span>
+                    <span className="text-ink-muted">Keywords:</span>{' '}
+                    <strong className="text-ink">{focusKeywords}</strong>
+                  </span>
+                )}
+                <span>
+                  <span className="text-ink-muted">Creativity:</span>{' '}
+                  <strong className="text-ink">
+                    {creativityLabel[creativityLevel]}
+                  </strong>
+                </span>
+                <span>
+                  <span className="text-ink-muted">Count:</span>{' '}
+                  <strong className="text-ink">{resultCount}</strong>
+                </span>
+                {remoteOnly && (
+                  <span className="rounded-[4px] bg-hover px-1.5 py-0.5 font-mono text-[10px] text-ink-secondary">
+                    REMOTE ONLY
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormExpanded(true)}
+                className="inline-flex items-center gap-1 rounded-[6px] border border-line bg-elevated px-2.5 py-1 text-[12px] font-medium text-ink-secondary hover:border-line-strong hover:text-ink"
+              >
+                Edit <ChevronDown size={11} />
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* Search form — full state, shown when not collapsed */}
+        {formExpanded && (
         <section className="mx-7 mb-5 rounded-[12px] border border-line bg-elevated p-5">
+          {results && (
+            <div className="mb-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setFormExpanded(false)}
+                className="inline-flex items-center gap-1 text-[12px] font-medium text-ink-muted hover:text-ink-secondary"
+              >
+                Collapse <ChevronUp size={11} />
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <label className="block md:col-span-2">
               <div className="mb-1.5 text-[11px] font-semibold tracking-[0.06em] text-ink-secondary uppercase">
@@ -150,7 +238,7 @@ export function Search() {
             <label className="block">
               <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.06em] text-ink-secondary uppercase">
                 Creativity
-                <InfoIcon tooltip={CREATIVITY_TOOLTIP} />
+                <CreativityHelp />
               </div>
               <select
                 value={creativityLevel}
@@ -219,6 +307,14 @@ export function Search() {
             </div>
           )}
         </section>
+        )}
+
+        {/* Show error in collapsed mode too — outside the section block. */}
+        {!formExpanded && error && (
+          <div className="mx-7 mb-4 rounded-[8px] border border-priority-high/30 bg-priority-high/5 px-4 py-3 text-[13px] text-priority-high">
+            {error}
+          </div>
+        )}
 
         {/* Progress state — shown while AI is generating */}
         {running && (
@@ -273,7 +369,7 @@ export function Search() {
               <span className="inline-flex items-center gap-1.5 text-[11px] text-ink-muted">
                 {results.length} match{results.length === 1 ? '' : 'es'}, ranked
                 by match score
-                <InfoIcon tooltip={MATCH_SCORE_TOOLTIP} />
+                <MatchScoreHelp />
               </span>
             </div>
             {results.map((r, idx) => (

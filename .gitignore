@@ -32,4 +32,5 @@ dist-ssr
 PROJECT.md
 .claude/settings.local.json
 _archive/
+_private/
 screenshots/_orig/

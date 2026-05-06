@@ -355,6 +355,36 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['weekly_plans']['Insert']>
         Relationships: []
       }
+      job_skills_snapshots: {
+        Row: RowOf<{
+          id: string
+          user_id: string
+          job_id: string | null
+          skills: string[]
+          source: string
+          captured_at: string
+        }>
+        Insert: {
+          id?: string
+          user_id: string
+          job_id?: string | null
+          skills?: string[]
+          source?: string
+          captured_at?: string
+        }
+        Update: Partial<
+          Database['public']['Tables']['job_skills_snapshots']['Insert']
+        >
+        Relationships: [
+          {
+            foreignKeyName: 'job_skills_snapshots_job_id_fkey'
+            columns: ['job_id']
+            referencedRelation: 'jobs'
+            referencedColumns: ['id']
+            isOneToOne: false
+          },
+        ]
+      }
     }
     Views: { [_ in never]: never }
     Functions: { [_ in never]: never }

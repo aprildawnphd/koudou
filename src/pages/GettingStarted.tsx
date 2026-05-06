@@ -1,9 +1,22 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Star, Search, Users, ArrowRight, Sparkles } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  Star,
+  Search,
+  Users,
+  ArrowRight,
+  Sparkles,
+  Wand2,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+} from 'lucide-react'
 import { differenceInCalendarDays, startOfWeek, addDays } from 'date-fns'
 import { useTodayData } from '@/hooks/useTodayData'
+import { useSession } from '@/hooks/useSession'
 import { deriveActions } from '@/lib/actionEngine'
+import { runDemoSeed } from '@/lib/demoSeed'
 import type { LucideIcon } from 'lucide-react'
 
 type EntryCard = {
@@ -69,6 +82,106 @@ function buildFocusSentence({
   return parts.join(' · ') + '.'
 }
 
+function DemoCard() {
+  const navigate = useNavigate()
+  const qc = useQueryClient()
+  const { session } = useSession()
+  const [confirming, setConfirming] = useState(false)
+
+  const seed = useMutation({
+    mutationFn: async () => {
+      if (!session?.user.id) throw new Error('Not signed in')
+      const result = await runDemoSeed(session.user.id)
+      if (!result.ok) throw new Error(result.error)
+      return result
+    },
+    onSuccess: () => {
+      qc.invalidateQueries()
+      setTimeout(() => navigate('/today'), 1200)
+    },
+  })
+
+  const isLoading = seed.isPending
+  const isDone = seed.isSuccess
+  const error = seed.error instanceof Error ? seed.error.message : null
+
+  return (
+    <div className="mx-7 mt-4 rounded-[10px] border border-[#fcd34d] bg-gradient-to-br from-[#fef3c7] to-[#fde68a] p-5 text-[#451a03]">
+      <div className="mb-2 flex items-center gap-2 text-[15px] font-semibold">
+        <Wand2 size={14} />
+        Try the demo
+      </div>
+      <p className="mb-3.5 text-[13px] leading-[1.55] text-[#78350f]">
+        Populate your account with the synthetic Riley Aldridge profile —
+        12 years of B2B SaaS product leadership, 8 target companies, 9
+        contacts, 10 jobs across all four pipeline stages, plus interviews
+        scheduled this week. Lets you exercise every page and try the AI
+        features (Cover Letters, Job Search) end-to-end.
+      </p>
+
+      {!confirming && !isLoading && !isDone && (
+        <button
+          type="button"
+          onClick={() => setConfirming(true)}
+          className="inline-flex items-center gap-1.5 rounded-[6px] bg-[#92400e] px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[#78350f]"
+        >
+          Run demo seed <ArrowRight size={12} />
+        </button>
+      )}
+
+      {confirming && !isLoading && !isDone && (
+        <div className="rounded-[8px] border border-[#92400e]/30 bg-white/60 p-3 text-[12px]">
+          <div className="mb-2 flex items-start gap-1.5 font-medium text-[#451a03]">
+            <AlertCircle size={13} className="mt-0.5 shrink-0" />
+            <span>
+              This will <strong>wipe</strong> your existing jobs, contacts,
+              target companies, activities, interviews, milestones, and
+              cover letters, then replace them with the synthetic dataset.
+              Your sign-in stays intact.
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => seed.mutate()}
+              className="inline-flex items-center gap-1.5 rounded-[6px] bg-[#92400e] px-3 py-1.5 text-[12px] font-medium text-white hover:bg-[#78350f]"
+            >
+              Yes, wipe & seed
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              className="rounded-[6px] border border-[#92400e]/30 px-3 py-1.5 text-[12px] font-medium text-[#451a03] hover:bg-white/50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isLoading && (
+        <div className="inline-flex items-center gap-2 rounded-[6px] bg-white/60 px-3 py-1.5 text-[13px] text-[#451a03]">
+          <Loader2 size={13} className="animate-spin" />
+          Seeding demo data…
+        </div>
+      )}
+
+      {isDone && (
+        <div className="inline-flex items-center gap-2 rounded-[6px] bg-white/70 px-3 py-1.5 text-[13px] font-medium text-[#14532d]">
+          <CheckCircle2 size={13} />
+          Demo seeded — opening Today…
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-2 rounded-[6px] border border-priority-high bg-white/60 p-2 text-[12px] text-priority-high">
+          Seed failed: {error}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function GettingStarted() {
   const navigate = useNavigate()
   const data = useTodayData()
@@ -104,11 +217,7 @@ export function GettingStarted() {
     now,
   ])
 
-  // Used to suppress the focus card briefly during initial load.
   const isFirstLoad = data.isLoading && data.jobs.length === 0
-
-  // Helper for daysFromToday count below — kept lazy.
-  // (no-op, but keeps the differenceInCalendarDays import used if we add detail)
   void differenceInCalendarDays
 
   return (
@@ -158,6 +267,8 @@ export function GettingStarted() {
           })}
         </div>
 
+        <DemoCard />
+
         {/* This week's focus */}
         {!isFirstLoad && (
           <div className="mx-7 mt-4 rounded-[10px] border border-line bg-elevated p-5">
@@ -175,6 +286,47 @@ export function GettingStarted() {
             </button>
           </div>
         )}
+
+        {/* About the demo */}
+        <div className="mx-7 mt-4 rounded-[10px] border border-line bg-elevated p-5 text-[13px] text-ink-secondary">
+          <h2 className="mb-2 text-[15px] font-semibold text-ink">
+            About this demo
+          </h2>
+          <p className="mb-2 leading-[1.55]">
+            Koudou is a job-search CRM I (April Dawn) am building publicly.
+            This deployment at <code className="rounded bg-hover px-1 py-0.5 text-[12px]">koudou.pages.dev</code> is
+            a private demo — sign-in is gated to a Google "Test users"
+            allowlist while the project stays in personal-tool scope.
+          </p>
+          <p className="mb-2 leading-[1.55]">
+            Want access? Email{' '}
+            <a
+              href="mailto:april.dawn1019@gmail.com"
+              className="text-accent-strong underline decoration-accent-strong/30 underline-offset-2 hover:decoration-accent-strong"
+            >
+              april.dawn1019@gmail.com
+            </a>{' '}
+            with the Google address you'd sign in with. Once added, sign in
+            via Google → click <strong>Run demo seed</strong> above to
+            populate your account.
+          </p>
+          <p className="leading-[1.55]">
+            Source is on{' '}
+            <a
+              href="https://github.com/aprildawn1019-sys/koudou"
+              target="_blank"
+              rel="noreferrer"
+              className="text-accent-strong underline decoration-accent-strong/30 underline-offset-2 hover:decoration-accent-strong"
+            >
+              GitHub
+            </a>{' '}
+            (PolyForm Noncommercial). See{' '}
+            <code className="rounded bg-hover px-1 py-0.5 text-[12px]">
+              DEMO.md
+            </code>{' '}
+            for fork-and-host instructions.
+          </p>
+        </div>
       </div>
     </>
   )

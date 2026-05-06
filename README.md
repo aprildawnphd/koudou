@@ -37,6 +37,10 @@ A focused job-search CRM. Built from the design handoff in [`design_handoff_koud
 
 > Screenshots are populated from `supabase/seed.sql`. Names are deliberately fictional.
 
+## Demo
+
+A private demo runs at **https://koudou.pages.dev/**. Sign-in is gated to a Google "Test users" allowlist. See [`DEMO.md`](DEMO.md) for how to request access, what gets seeded, and how to host your own.
+
 ## Stack
 
 - **Build:** Vite + TypeScript

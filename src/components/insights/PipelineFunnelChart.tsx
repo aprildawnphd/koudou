@@ -24,9 +24,9 @@ export type FunnelData = {
 const MIN_N_FOR_CONVERSION = 5
 
 const STAGES = [
-  { key: 'applications' as const, label: 'Applications' },
-  { key: 'interviews' as const, label: 'Interviews' },
-  { key: 'offers' as const, label: 'Offers' },
+  { key: 'applications' as const, label: 'Applications', number: 1 },
+  { key: 'interviews' as const, label: 'Interviews', number: 2 },
+  { key: 'offers' as const, label: 'Offers', number: 3 },
 ]
 
 const STALLED_LABEL: Record<keyof FunnelData, string> = {
@@ -126,6 +126,11 @@ export function PipelineFunnelChart({ data }: { data: FunnelData }) {
 
   return (
     <div className="rounded-[12px] border border-line bg-elevated p-6">
+      <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold tracking-[0.06em] text-ink-muted uppercase">
+        <span>Pipeline stages</span>
+        <span className="text-ink-muted">·</span>
+        <span>3 sequential</span>
+      </div>
       <div className="relative">
         <svg
           viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
@@ -251,8 +256,13 @@ export function PipelineFunnelChart({ data }: { data: FunnelData }) {
             style={{ gridColumn: `${i * 2 + 1}` }}
             className="flex flex-col items-center gap-1"
           >
-            <div className="text-[11px] font-semibold tracking-[0.04em] text-ink-secondary uppercase">
-              {STAGES[i].label}
+            <div className="flex items-center gap-1.5">
+              <span className="grid size-4 place-items-center rounded-full bg-warmth-referral/15 font-mono text-[9px] font-bold text-warmth-referral">
+                {STAGES[i].number}
+              </span>
+              <span className="text-[11px] font-semibold tracking-[0.04em] text-ink-secondary uppercase">
+                {STAGES[i].label}
+              </span>
             </div>
             {s.stalled > 0 && (
               <div

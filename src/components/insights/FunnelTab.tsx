@@ -187,11 +187,13 @@ export function FunnelTab() {
       {/* Header: title + window selector */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-[16px] font-semibold text-ink">Pipeline flow</h2>
+          <h2 className="text-[16px] font-semibold text-ink">
+            Pipeline stages
+          </h2>
           <p className="text-[12px] text-ink-secondary">
             {cohortSize === 0
-              ? `No applications in ${WINDOW_LABEL[windowKey].toLowerCase()}`
-              : `${cohortSize} application${cohortSize === 1 ? '' : 's'} in ${WINDOW_LABEL[windowKey].toLowerCase()}`}
+              ? `No applications in ${WINDOW_LABEL[windowKey].toLowerCase()} — flow through Applications → Interviews → Offers`
+              : `${cohortSize} application${cohortSize === 1 ? '' : 's'} flowing through 3 stages — Applications → Interviews → Offers — in ${WINDOW_LABEL[windowKey].toLowerCase()}`}
           </p>
         </div>
         <div className="flex items-center gap-1 rounded-[6px] border border-line bg-elevated p-0.5">

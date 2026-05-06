@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Sparkles, Save, Trash2, Copy, CheckCircle2 } from 'lucide-react'
+import { Sparkles, Save, Trash2, Copy, CheckCircle2, RefreshCw } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
-import { invokeEdge } from '@/lib/edgeFunctions'
+import { invokeEdge, EdgeError } from '@/lib/edgeFunctions'
 import { Button } from '@/components/ui/Button'
 import { CompanyFavicon } from '@/components/CompanyFavicon'
 import { Sheet } from '@/components/ui/Sheet'
@@ -20,7 +20,7 @@ export function Letters() {
   const [editing, setEditing] = useState<LetterWithJob | null>(null)
   const [editText, setEditText] = useState('')
   const [generating, setGenerating] = useState<string | null>(null) // job_id being generated
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<{ message: string; retryable: boolean; jobId: string | null } | null>(null)
   const [copied, setCopied] = useState(false)
 
   const { data: letters = [] } = useQuery({
@@ -86,7 +86,12 @@ export function Letters() {
       setEditing({ ...letter, job })
       setEditText(content)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Generation failed')
+      const retryable = e instanceof EdgeError && e.retryable
+      setError({
+        message: e instanceof Error ? e.message : 'Generation failed',
+        retryable,
+        jobId,
+      })
     } finally {
       setGenerating(null)
     }
@@ -147,8 +152,30 @@ export function Letters() {
 
       <div className="flex-1 overflow-y-auto pb-8">
         {error && (
-          <div className="mx-7 mb-3 rounded-[8px] border border-priority-high/30 bg-priority-high/5 px-4 py-3 text-[13px] text-priority-high">
-            {error}
+          <div
+            className={cn(
+              'mx-7 mb-3 rounded-[8px] border px-4 py-3 text-[13px]',
+              error.retryable
+                ? 'border-warmth-referral/30 bg-warmth-referral/10 text-ink'
+                : 'border-priority-high/30 bg-priority-high/5 text-priority-high',
+            )}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">{error.message}</div>
+              {error.retryable && error.jobId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = error.jobId!
+                    setError(null)
+                    generate(id)
+                  }}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-[6px] bg-warmth-referral px-3 py-1.5 text-[12px] font-medium text-white hover:bg-warmth-referral/90"
+                >
+                  <RefreshCw size={12} /> Retry
+                </button>
+              )}
+            </div>
           </div>
         )}
 

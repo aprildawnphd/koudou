@@ -2,9 +2,24 @@
 // and either returns a 429 or inserts a new row + returns OK. Writes use the
 // service role to bypass RLS — RLS on api_rate_limits only grants SELECT to
 // the authenticated user.
+//
+// Owner exemption: user IDs listed in the OWNER_USER_IDS env var
+// (comma-separated UUIDs) skip the limit check AND don't record a row.
+// Use this for the project owner so testing/personal use doesn't compete
+// with demo users for the daily quota.
 
 type RateLimitOk = { errorResponse?: never }
 type RateLimitErr = { errorResponse: Response }
+
+function isOwner(userId: string): boolean {
+  const raw = Deno.env.get('OWNER_USER_IDS') ?? ''
+  if (!raw.trim()) return false
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .includes(userId)
+}
 
 export async function checkRateLimit({
   userId,
@@ -19,6 +34,12 @@ export async function checkRateLimit({
   windowMinutes: number
   corsHeaders: Record<string, string>
 }): Promise<RateLimitOk | RateLimitErr> {
+  // Owner bypass — no count, no insert.
+  if (isOwner(userId)) {
+    console.log(`rate-limit: owner exemption applied for ${userId} on ${functionName}`)
+    return {}
+  }
+
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 

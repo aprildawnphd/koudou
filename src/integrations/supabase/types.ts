@@ -335,6 +335,26 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['milestones']['Insert']>
         Relationships: []
       }
+      weekly_plans: {
+        Row: RowOf<{
+          id: string
+          user_id: string
+          week_start: string
+          scoreboard: Json
+          plan: Json
+          generated_at: string
+        }>
+        Insert: {
+          id?: string
+          user_id: string
+          week_start: string
+          scoreboard?: Json
+          plan?: Json
+          generated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['weekly_plans']['Insert']>
+        Relationships: []
+      }
     }
     Views: { [_ in never]: never }
     Functions: { [_ in never]: never }

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search as SearchIcon, Sparkles, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
+import { Search as SearchIcon, Sparkles, ExternalLink, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
-import { invokeEdge } from '@/lib/edgeFunctions'
+import { invokeEdge, EdgeError } from '@/lib/edgeFunctions'
 import { Button } from '@/components/ui/Button'
 import { Pill } from '@/components/ui/Pill'
 import { InfoPopover } from '@/components/ui/InfoPopover'
@@ -89,7 +89,7 @@ export function Search() {
   const [resultCount, setResultCount] = useState(10)
   const [running, setRunning] = useState(false)
   const [results, setResults] = useState<SuggestedJob[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<{ message: string; retryable: boolean } | null>(null)
   const [formExpanded, setFormExpanded] = useState(true)
 
   // Profile completeness check — drives the inline banner + a friendly
@@ -129,7 +129,10 @@ export function Search() {
       // vertical room. User can re-expand via the chip's Edit button.
       setFormExpanded(false)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Search failed')
+      setError({
+        message: e instanceof Error ? e.message : 'Search failed',
+        retryable: e instanceof EdgeError && e.retryable,
+      })
     } finally {
       setRunning(false)
     }
@@ -302,17 +305,28 @@ export function Search() {
           </div>
 
           {error && (
-            <div className="mt-3 rounded-[6px] border border-priority-high/30 bg-priority-high/5 px-3 py-2 text-[12px] text-priority-high">
-              {error}
-            </div>
+            <ErrorBanner
+              error={error}
+              onRetry={() => {
+                setError(null)
+                run()
+              }}
+              compact
+            />
           )}
         </section>
         )}
 
         {/* Show error in collapsed mode too — outside the section block. */}
         {!formExpanded && error && (
-          <div className="mx-7 mb-4 rounded-[8px] border border-priority-high/30 bg-priority-high/5 px-4 py-3 text-[13px] text-priority-high">
-            {error}
+          <div className="mx-7 mb-4">
+            <ErrorBanner
+              error={error}
+              onRetry={() => {
+                setError(null)
+                run()
+              }}
+            />
           </div>
         )}
 
@@ -453,5 +467,40 @@ export function Search() {
         )}
       </div>
     </>
+  )
+}
+
+function ErrorBanner({
+  error,
+  onRetry,
+  compact = false,
+}: {
+  error: { message: string; retryable: boolean }
+  onRetry: () => void
+  compact?: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        'rounded-[8px] border',
+        compact ? 'mt-3 px-3 py-2 text-[12px]' : 'px-4 py-3 text-[13px]',
+        error.retryable
+          ? 'border-warmth-referral/30 bg-warmth-referral/10 text-ink'
+          : 'border-priority-high/30 bg-priority-high/5 text-priority-high',
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">{error.message}</div>
+        {error.retryable && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-[6px] bg-warmth-referral px-3 py-1.5 text-[12px] font-medium text-white hover:bg-warmth-referral/90"
+          >
+            <RefreshCw size={12} /> Retry
+          </button>
+        )}
+      </div>
+    </div>
   )
 }

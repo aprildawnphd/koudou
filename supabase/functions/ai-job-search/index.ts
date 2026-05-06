@@ -302,7 +302,7 @@ IMPORTANT RULES:
 - match_score values must honestly reflect how well the job fits the candidate.
 - You MUST call the generate_jobs tool with the results.`
 
-    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY })
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY, maxRetries: 4 })
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
@@ -369,6 +369,23 @@ IMPORTANT RULES:
     )
   } catch (e) {
     console.error('ai-job-search error:', e)
+    if (e instanceof Anthropic.APIError && (e.status === 529 || e.status === 503)) {
+      return new Response(
+        JSON.stringify({
+          error:
+            'Anthropic is temporarily overloaded. Try again in a minute — your daily quota was not used.',
+          retryable: true,
+        }),
+        {
+          status: 503,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Retry-After': '30',
+          },
+        },
+      )
+    }
     return new Response(
       JSON.stringify({
         error: e instanceof Error ? e.message : 'Unknown error',

@@ -243,11 +243,13 @@ export function PipelineFunnelChart({ data }: { data: FunnelData }) {
         </div>
       </div>
 
-      {/* Stage labels + stalled badges below the chart */}
+      {/* Stage labels + stalled badges below the chart. Same fr-units grid
+          as the conversion pill overlay so labels track bar positions across
+          all screen widths. */}
       <div
         className="mt-3 grid gap-0"
         style={{
-          gridTemplateColumns: `${BAR_WIDTH}px ${RIBBON_GAP}px ${BAR_WIDTH}px ${RIBBON_GAP}px ${BAR_WIDTH}px`,
+          gridTemplateColumns: `${BAR_WIDTH}fr ${RIBBON_GAP}fr ${BAR_WIDTH}fr ${RIBBON_GAP}fr ${BAR_WIDTH}fr`,
         }}
       >
         {stageData.map((s, i) => (

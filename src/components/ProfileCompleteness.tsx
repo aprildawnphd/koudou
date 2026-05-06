@@ -103,17 +103,18 @@ export function ProfileCompletenessBanner({
     <div className="rounded-[10px] border border-[#fcd34d] bg-gradient-to-br from-[#fef3c7] to-[#fde68a] px-4 py-3 text-[13px] text-[#78350f]">
       <div className="mb-1 flex items-center gap-2 font-semibold text-[#451a03]">
         <CheckCircle2 size={14} />
-        Profile is {score}% complete — matches will improve with more detail
+        Your match scores could be higher
       </div>
       <p>
-        Add <strong>{topTwo}</strong> in your{' '}
+        Your profile is <strong>{score}% complete</strong> — the AI has less
+        signal to score against. Filling in <strong>{topTwo}</strong> in your{' '}
         <a
           href="/profile"
           className="underline decoration-[#92400e]/40 underline-offset-2 hover:decoration-[#92400e]"
         >
           Profile
         </a>{' '}
-        to sharpen the next search.
+        would close the biggest gaps.
       </p>
     </div>
   )

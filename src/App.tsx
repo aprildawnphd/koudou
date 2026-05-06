@@ -1,5 +1,6 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import { AppLayout } from '@/components/AppLayout'
+import { IndexRedirect } from '@/components/IndexRedirect'
 import { Auth } from '@/pages/Auth'
 import { JobsPreview } from '@/pages/JobsPreview'
 import { GettingStarted } from '@/pages/GettingStarted'
@@ -26,7 +27,7 @@ function App() {
         <Route path="/preview/jobs" element={<JobsPreview />} />
       )}
       <Route element={<AppLayout />}>
-        <Route index element={<Navigate to="/today" replace />} />
+        <Route index element={<IndexRedirect />} />
         <Route path="/getting-started" element={<GettingStarted />} />
         <Route path="/today" element={<Today />} />
         <Route path="/jobs" element={<Jobs />} />

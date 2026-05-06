@@ -33,10 +33,10 @@ The deployment at `koudou.pages.dev` is a private demo, gated by a shared invite
 
 You can then exercise every page — Today, Jobs, Interviews, Network, Target Companies — and try the AI features end-to-end:
 
-- **AI Job Search** at `/search` — currently returns AI-generated **suggestions** based on your profile, not real job postings. The real-web-search foundation (which existed in the Lovable predecessor) is being rebuilt. Treat the suggestions as illustrative only. ~5–15 sec per call. **Limit: 10 / day per user.**
+- **AI Job Search** at `/search` — uses Anthropic's web_search tool to find real currently-open postings on job boards (LinkedIn, Greenhouse, Lever, Wellfound, company careers pages). Each result is labeled: "Web result" (real URL, found in search) or "AI Suggestion" (fallback when web search returns sparse results, points to the company's careers page only). ~10–25 sec per call (web searches are slower than pure AI calls). **Limit: 10 / day per user.**
 - **Cover Letters** at `/letters` — drafts a 3–4 paragraph letter against any job in your pipeline. ~3–8 sec per call. **Limit: 5 / day per user.**
-- **Skill Gap** at `/insights` (Skill Gap tab) — analyzes your profile against your active pipeline. Quality depends on having real jobs in your pipeline; reduced value when AI Job Search results are saved as-is.
-- **Weekly Plan** at `/insights` (Weekly Plan tab) — drafts a 3-5 action plan for the upcoming week. Works on whatever pipeline state exists.
+- **Skill Gap** at `/insights` (Skill Gap tab) — analyzes your profile against your active pipeline. Quality improves once real Web result jobs are saved to your pipeline (the skill-extraction pipeline that auto-tags jobs is being rebuilt — Session 6.3).
+- **Weekly Plan** at `/insights` (Weekly Plan tab) — drafts a 3-5 action plan for the upcoming week based on funnel state + entity context. Works on whatever pipeline state exists.
 
 The daily caps keep AI costs predictable on my Anthropic budget ($25/mo hard cap on the dev key). If you hit a limit, try tomorrow.
 

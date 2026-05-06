@@ -41,7 +41,7 @@ A focused job-search CRM. Built from a static design-handoff prototype (`design_
 
 A private demo runs at **https://koudou.pages.dev/**. Sign-in is invite-only via a shared code; email April for access. See [`DEMO.md`](DEMO.md) for the full flow, what gets seeded, and how to host your own.
 
-> **Heads-up:** AI Job Search currently returns AI-generated *suggestions*, not real postings. Real-web-search foundation is being rebuilt — a Lovable feature regression we caught during design review. Cover Letters, Skill Gap, and Weekly Plan all work as expected.
+> **Note on AI features:** AI Job Search uses Anthropic's web_search tool to find real postings on job boards; results are visually labeled as "Web result" (real URL) or "AI Suggestion" (fallback when web search returns sparse results, points to careers page). Cover Letters, Skill Gap, and Weekly Plan run on your pipeline data. Daily quotas: 10 searches/day, 5 letters/day, 5 skill gaps/day, 5 plans/day per user.
 
 ## Stack
 

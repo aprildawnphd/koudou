@@ -75,7 +75,7 @@ export function Auth() {
   }
 
   return (
-    <div className="grid h-screen place-items-center bg-app-bg">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-app-bg py-8">
       <div className="w-full max-w-[400px] rounded-[12px] border border-line bg-elevated p-8 shadow-sm">
         <div className="mb-6 flex items-center gap-3">
           <img
@@ -190,6 +190,42 @@ export function Auth() {
             </>
           )}
         </div>
+      </div>
+
+      <div className="w-full max-w-[400px] rounded-[12px] border border-[#fcd34d] bg-gradient-to-br from-[#fef3c7] to-[#fde68a] p-5 text-[12.5px] leading-[1.55] text-[#78350f]">
+        <div className="mb-1.5 text-[13px] font-semibold text-[#451a03]">
+          Private demo — request access
+        </div>
+        <p className="mb-2">
+          Koudou is a personal project I (April Dawn) am building publicly.
+          This deployment is a private demo gated to a small Google
+          allowlist while it stays in personal-tool scope.
+        </p>
+        <p className="mb-2">
+          To request access, email{' '}
+          <a
+            href="mailto:april.dawn1019@gmail.com?subject=Koudou%20demo%20access"
+            className="font-medium text-[#451a03] underline decoration-[#92400e]/40 underline-offset-2 hover:decoration-[#92400e]"
+          >
+            april.dawn1019@gmail.com
+          </a>{' '}
+          with the Google address you'd sign in with. Once you're added,
+          sign in with Google above and click <strong>Run demo seed</strong>{' '}
+          on the Getting Started page to populate your account with
+          synthetic data.
+        </p>
+        <p>
+          Source on{' '}
+          <a
+            href="https://github.com/aprildawnphd/koudou"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-[#451a03] underline decoration-[#92400e]/40 underline-offset-2 hover:decoration-[#92400e]"
+          >
+            GitHub
+          </a>{' '}
+          (PolyForm Noncommercial).
+        </p>
       </div>
     </div>
   )

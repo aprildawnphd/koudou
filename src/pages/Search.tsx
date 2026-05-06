@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search as SearchIcon, Sparkles, ExternalLink } from 'lucide-react'
+import { Search as SearchIcon, Sparkles, ExternalLink, HelpCircle } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { invokeEdge } from '@/lib/edgeFunctions'
 import { Button } from '@/components/ui/Button'
 import { Pill } from '@/components/ui/Pill'
 import { CompanyFavicon } from '@/components/CompanyFavicon'
+import { ProfileCompletenessBanner } from '@/components/ProfileCompleteness'
 import { cn } from '@/lib/utils'
+import type { Tables } from '@/integrations/supabase/types'
 
 type SuggestedJob = {
   company: string
@@ -26,6 +28,32 @@ type SuggestedJob = {
 const inputClass =
   'w-full rounded-[6px] border border-line bg-elevated px-3 py-2 text-[13px] text-ink outline-none focus:border-accent-strong focus:ring-2 focus:ring-accent-strong/20'
 
+const CREATIVITY_TOOLTIP =
+  'Three different instructions sent to the AI:\n\n' +
+  '• Conservative — only near-perfect matches to your stated targets.\n' +
+  '• Balanced — close matches plus a few stretches that leverage transferable skills.\n' +
+  '• Exploratory — adjacent roles, unexpected industries, and lateral moves.\n\n' +
+  'Not an algorithm — these literally change the prompt the AI follows.'
+
+const MATCH_SCORE_TOOLTIP =
+  "The AI's subjective fit score (0–100) for this suggestion against your profile.\n\n" +
+  '• 80+ green = strong fit\n' +
+  '• 60–79 gold = moderate fit, usually with a stretch dimension\n' +
+  '• <60 grey = weak / exploratory\n\n' +
+  "Not deterministic — same search may shift ±5 points across runs. Compare scores within a single search, not across runs."
+
+function InfoIcon({ tooltip }: { tooltip: string }) {
+  return (
+    <span
+      className="inline-flex cursor-help align-middle text-ink-muted hover:text-ink-secondary"
+      title={tooltip}
+      aria-label={tooltip}
+    >
+      <HelpCircle size={11} />
+    </span>
+  )
+}
+
 export function Search() {
   const [focusKeywords, setFocusKeywords] = useState('')
   const [creativityLevel, setCreativityLevel] = useState<
@@ -37,17 +65,17 @@ export function Search() {
   const [results, setResults] = useState<SuggestedJob[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Profile completeness check — light client-side guard so the user gets a
-  // friendly nudge before the edge function rejects the request.
+  // Profile completeness check — drives the inline banner + a friendly
+  // guard so the user gets a clear nudge before the edge function rejects.
   const { data: profile } = useQuery({
     queryKey: ['profile', 'self'],
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('target_roles,resume_text')
+        .select('*')
         .limit(1)
         .maybeSingle()
-      return data
+      return data as Tables<'profiles'> | null
     },
   })
   const profileMissingTargetRoles =
@@ -92,10 +120,14 @@ export function Search() {
       </header>
 
       <div className="flex-1 overflow-y-auto pb-12">
-        {profileMissingTargetRoles && (
+        {profileMissingTargetRoles ? (
           <div className="mx-7 mb-4 rounded-[10px] border border-[#fcd34d] bg-gradient-to-br from-[#fef3c7] to-[#fde68a] px-4 py-3 text-[13px] text-[#78350f]">
             Add target roles to your <strong>Profile</strong> first — AI Job
             Search uses them as the starting point for matches.
+          </div>
+        ) : (
+          <div className="mx-7 mb-4">
+            <ProfileCompletenessBanner profile={profile} />
           </div>
         )}
 
@@ -116,8 +148,9 @@ export function Search() {
               />
             </label>
             <label className="block">
-              <div className="mb-1.5 text-[11px] font-semibold tracking-[0.06em] text-ink-secondary uppercase">
+              <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.06em] text-ink-secondary uppercase">
                 Creativity
+                <InfoIcon tooltip={CREATIVITY_TOOLTIP} />
               </div>
               <select
                 value={creativityLevel}
@@ -237,9 +270,10 @@ export function Search() {
               <span className="text-[11px] font-semibold tracking-[0.08em] text-ink-muted uppercase">
                 Results
               </span>
-              <span className="text-[11px] text-ink-muted">
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-ink-muted">
                 {results.length} match{results.length === 1 ? '' : 'es'}, ranked
-                by fit
+                by match score
+                <InfoIcon tooltip={MATCH_SCORE_TOOLTIP} />
               </span>
             </div>
             {results.map((r, idx) => (

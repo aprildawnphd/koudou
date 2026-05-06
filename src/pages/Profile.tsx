@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useSession } from '@/hooks/useSession'
 import { TagInput } from '@/components/ui/TagInput'
 import { Button } from '@/components/ui/Button'
+import { ProfileCompletenessCard } from '@/components/ProfileCompleteness'
 import { cn } from '@/lib/utils'
 import type { Tables, TablesUpdate } from '@/integrations/supabase/types'
 
@@ -145,6 +146,7 @@ export function Profile() {
         )}
 
         <div className="mx-7 grid max-w-[800px] grid-cols-1 gap-5">
+          <ProfileCompletenessCard profile={data} />
           <section className="rounded-[12px] border border-line bg-elevated p-5">
             <h2 className="mb-1 text-[15px] font-semibold text-ink">Basics</h2>
             <p className="mb-4 text-[12px] text-ink-secondary">

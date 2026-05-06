@@ -187,6 +187,49 @@ export function Search() {
           )}
         </section>
 
+        {/* Progress state — shown while AI is generating */}
+        {running && (
+          <section className="mx-7 mb-5">
+            <div className="rounded-[12px] border border-line bg-elevated p-6">
+              <div className="mb-3 flex items-center gap-2.5">
+                <Sparkles
+                  size={16}
+                  className="animate-pulse text-brand-strong"
+                />
+                <span className="text-[14px] font-semibold text-ink">
+                  AI is matching your profile against companies and roles…
+                </span>
+              </div>
+              <p className="mb-4 text-[12px] text-ink-secondary">
+                This typically takes 15–25 seconds. Claude is reading your
+                resume + target roles and generating ranked suggestions.
+              </p>
+              {/* Skeleton rows */}
+              <div className="space-y-2">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 rounded-[8px] border border-line bg-app-bg p-3"
+                  >
+                    <div className="size-8 shrink-0 animate-pulse rounded-[5px] bg-hover" />
+                    <div className="flex-1">
+                      <div
+                        className="h-3 animate-pulse rounded bg-hover"
+                        style={{ width: `${60 + i * 10}%` }}
+                      />
+                      <div
+                        className="mt-2 h-2 animate-pulse rounded bg-hover"
+                        style={{ width: `${40 + i * 8}%` }}
+                      />
+                    </div>
+                    <div className="size-10 animate-pulse rounded-[6px] bg-hover" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Results */}
         {results && results.length > 0 && (
           <section className="mx-7">

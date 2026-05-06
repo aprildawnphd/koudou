@@ -217,6 +217,25 @@ export function Letters() {
           AI uses your profile resume + the job's description. Make sure both
           exist for a useful result.
         </div>
+
+        {generating && (
+          <div className="mb-4 rounded-[10px] border border-line bg-elevated p-4">
+            <div className="mb-2 flex items-center gap-2.5">
+              <Sparkles
+                size={14}
+                className="animate-pulse text-brand-strong"
+              />
+              <span className="text-[13px] font-semibold text-ink">
+                Generating cover letter…
+              </span>
+            </div>
+            <p className="text-[12px] text-ink-secondary">
+              This typically takes 5–15 seconds. Claude is tailoring the letter
+              to the job description using your resume.
+            </p>
+          </div>
+        )}
+
         {ungeneratedJobs.length === 0 && (
           <div className="text-[13px] text-ink-muted">
             Every job in your pipeline already has a cover letter.
@@ -230,7 +249,8 @@ export function Letters() {
             onClick={() => generate(j.id)}
             className={cn(
               'mb-2 flex w-full items-center gap-3 rounded-[8px] border border-line bg-elevated p-3 text-left hover:border-accent-strong',
-              generating === j.id && 'opacity-60',
+              generating !== null && generating !== j.id && 'opacity-40',
+              generating === j.id && 'border-accent-strong opacity-80',
             )}
           >
             <CompanyFavicon name={j.company} />
@@ -239,7 +259,11 @@ export function Letters() {
               <div className="text-[12px] text-ink-muted">{j.company}</div>
             </div>
             <span className="text-[12px] font-medium text-accent-strong">
-              {generating === j.id ? 'Generating…' : 'Generate →'}
+              {generating === j.id
+                ? 'Generating…'
+                : generating !== null
+                  ? '—'
+                  : 'Generate →'}
             </span>
           </button>
         ))}

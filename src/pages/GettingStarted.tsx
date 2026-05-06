@@ -11,12 +11,15 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  Wrench,
 } from 'lucide-react'
 import { differenceInCalendarDays, startOfWeek, addDays } from 'date-fns'
 import { useTodayData } from '@/hooks/useTodayData'
 import { useSession } from '@/hooks/useSession'
 import { deriveActions } from '@/lib/actionEngine'
 import { runDemoSeed } from '@/lib/demoSeed'
+import { invokeEdge, EdgeError } from '@/lib/edgeFunctions'
+import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
 
 type EntryCard = {
@@ -182,6 +185,127 @@ function DemoCard() {
   )
 }
 
+type BackfillResult = {
+  jobsScanned: number
+  jobsWithoutDescription: number
+  snapshotsCreated: number
+  errors: number
+  message?: string
+}
+
+function BackfillSkillsCard() {
+  const qc = useQueryClient()
+
+  const backfill = useMutation({
+    mutationFn: async () => {
+      return await invokeEdge<BackfillResult>('backfill-skill-snapshots', {})
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['job_skills_snapshots'] })
+    },
+  })
+
+  const isLoading = backfill.isPending
+  const result = backfill.data
+  const error =
+    backfill.error instanceof EdgeError
+      ? { message: backfill.error.message, retryable: backfill.error.retryable }
+      : backfill.error instanceof Error
+        ? { message: backfill.error.message, retryable: false }
+        : null
+
+  return (
+    <div className="mx-7 mt-4 rounded-[10px] border border-line bg-elevated p-5">
+      <div className="mb-2 flex items-center gap-2 text-[15px] font-semibold text-ink">
+        <Wrench size={14} className="text-brand-strong" />
+        Extract skills from your pipeline
+      </div>
+      <p className="mb-3.5 text-[13px] leading-[1.55] text-ink-secondary">
+        Scans your pipeline jobs and extracts the top ~20 skills from each
+        description using AI. Powers the Skills tab's ATS positioning + trend
+        tracking. Run this once after seeding the demo data — re-run anytime
+        you add jobs with new descriptions.
+      </p>
+
+      {!isLoading && !result && !error && (
+        <button
+          type="button"
+          onClick={() => backfill.mutate()}
+          className="inline-flex items-center gap-1.5 rounded-[6px] bg-accent-strong px-3 py-1.5 text-[13px] font-medium text-white hover:bg-accent-strong/90"
+        >
+          Run skills extraction <ArrowRight size={12} />
+        </button>
+      )}
+
+      {isLoading && (
+        <div className="inline-flex items-center gap-2 rounded-[6px] bg-hover px-3 py-1.5 text-[13px] text-ink">
+          <Loader2 size={13} className="animate-spin" />
+          Extracting skills (this takes 5–15 sec)…
+        </div>
+      )}
+
+      {result && !error && (
+        <div className="space-y-2 text-[13px]">
+          <div className="inline-flex items-center gap-2 rounded-[6px] bg-warmth-referral/10 px-3 py-1.5 font-medium text-ink">
+            <CheckCircle2 size={13} className="text-warmth-referral" />
+            {result.snapshotsCreated > 0
+              ? `${result.snapshotsCreated} skill snapshot${result.snapshotsCreated === 1 ? '' : 's'} created`
+              : 'No new snapshots needed'}
+          </div>
+          <div className="text-[12px] text-ink-secondary">
+            Scanned {result.jobsScanned} job
+            {result.jobsScanned === 1 ? '' : 's'} ·{' '}
+            {result.jobsWithoutDescription > 0 && (
+              <>
+                {result.jobsWithoutDescription} skipped (no description) ·{' '}
+              </>
+            )}
+            {result.errors > 0 && (
+              <span className="text-priority-high">
+                {result.errors} extraction error
+                {result.errors === 1 ? '' : 's'} ·{' '}
+              </span>
+            )}
+            {result.message && <span>{result.message}</span>}
+          </div>
+          <button
+            type="button"
+            onClick={() => backfill.reset()}
+            className="text-[12px] font-medium text-accent-strong hover:underline"
+          >
+            Run again
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <div
+          className={cn(
+            'rounded-[8px] border px-4 py-3 text-[13px]',
+            error.retryable
+              ? 'border-warmth-referral/30 bg-warmth-referral/10 text-ink'
+              : 'border-priority-high/30 bg-priority-high/5 text-priority-high',
+          )}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">{error.message}</div>
+            <button
+              type="button"
+              onClick={() => {
+                backfill.reset()
+                backfill.mutate()
+              }}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-[6px] bg-accent-strong px-3 py-1.5 text-[12px] font-medium text-white hover:bg-accent-strong/90"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function GettingStarted() {
   const navigate = useNavigate()
   const data = useTodayData()
@@ -268,6 +392,7 @@ export function GettingStarted() {
         </div>
 
         <DemoCard />
+        <BackfillSkillsCard />
 
         {/* This week's focus */}
         {!isFirstLoad && (

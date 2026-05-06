@@ -44,10 +44,16 @@ export async function checkRateLimit({
   const total = parseInt(contentRange.split('/')[1] ?? '0', 10)
 
   if (total >= maxCalls) {
+    const window =
+      windowMinutes >= 1440
+        ? `${Math.round(windowMinutes / 1440)} day${windowMinutes >= 2880 ? 's' : ''}`
+        : windowMinutes >= 60
+          ? `${Math.round(windowMinutes / 60)} hour${windowMinutes >= 120 ? 's' : ''}`
+          : `${windowMinutes} minutes`
     return {
       errorResponse: new Response(
         JSON.stringify({
-          error: `Rate limit reached: ${maxCalls} calls per ${windowMinutes} minutes. Try again shortly.`,
+          error: `Daily limit reached: ${maxCalls} calls per ${window}. The cap keeps this demo's AI costs predictable — try again tomorrow.`,
         }),
         {
           status: 429,

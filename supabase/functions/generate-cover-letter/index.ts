@@ -55,8 +55,8 @@ Deno.serve(async (req) => {
     const rl = await checkRateLimit({
       userId,
       functionName: 'generate-cover-letter',
-      maxCalls: 20,
-      windowMinutes: 60,
+      maxCalls: 5,
+      windowMinutes: 1440,
       corsHeaders,
     })
     if (rl.errorResponse) return rl.errorResponse

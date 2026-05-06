@@ -294,26 +294,23 @@ export function GettingStarted() {
           </h2>
           <p className="mb-2 leading-[1.55]">
             Koudou is a job-search CRM I (April Dawn) am building publicly.
-            This deployment at <code className="rounded bg-hover px-1 py-0.5 text-[12px]">koudou.pages.dev</code> is
-            a private demo — sign-in is gated to a Google "Test users"
-            allowlist while the project stays in personal-tool scope.
+            This deployment at{' '}
+            <code className="rounded bg-hover px-1 py-0.5 text-[12px]">
+              koudou.pages.dev
+            </code>{' '}
+            is a private demo — sign-in is invite-only via a shared code
+            while the project stays in personal-tool scope.
           </p>
           <p className="mb-2 leading-[1.55]">
-            Want access? Email{' '}
-            <a
-              href="mailto:april.dawn1019@gmail.com"
-              className="text-accent-strong underline decoration-accent-strong/30 underline-offset-2 hover:decoration-accent-strong"
-            >
-              april.dawn1019@gmail.com
-            </a>{' '}
-            with the Google address you'd sign in with. Once added, sign in
-            via Google → click <strong>Run demo seed</strong> above to
-            populate your account.
+            <strong>AI features are rate-limited per user</strong> — 5
+            cover letters and 10 AI job searches per day — to keep costs
+            predictable. Click <strong>Run demo seed</strong> above to
+            populate your account so every page has data to explore.
           </p>
           <p className="leading-[1.55]">
             Source is on{' '}
             <a
-              href="https://github.com/aprildawn1019-sys/koudou"
+              href="https://github.com/aprildawnphd/koudou"
               target="_blank"
               rel="noreferrer"
               className="text-accent-strong underline decoration-accent-strong/30 underline-offset-2 hover:decoration-accent-strong"

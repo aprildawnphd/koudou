@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, ArrowRight } from 'lucide-react'
 
 // 3-stage Pendo-style flow funnel. Bars sized proportional to applications
 // count (the largest); sloped trapezoid ribbons between stages encode the
@@ -78,7 +78,7 @@ export function PipelineFunnelChart({ data }: { data: FunnelData }) {
     return BASELINE_Y - barHeight(count)
   }
 
-  function conversion(from: number, to: number): string {
+  function conversionPct(from: number, to: number): string {
     if (from < MIN_N_FOR_CONVERSION) return '—'
     if (from === 0) return '—'
     return `${Math.round((to / from) * 100)}%`
@@ -206,38 +206,34 @@ export function PipelineFunnelChart({ data }: { data: FunnelData }) {
           ))}
         </svg>
 
-        {/* Conversion % labels overlaid as HTML (easier styling than SVG <text>) */}
+        {/* Conversion labels overlaid as HTML pills above each ribbon. Each
+            pill shows both the ratio (5 of 10) and the percentage (50%) so a
+            user can read what the slope means without reverse-engineering.
+            Uses fr columns + percentage top so it tracks the SVG's responsive
+            scaling on narrow screens. */}
         <div
-          className="pointer-events-none absolute top-0 grid w-full"
+          className="pointer-events-none absolute inset-x-0 grid w-full"
           style={{
-            gridTemplateColumns: `${BAR_WIDTH}px ${RIBBON_GAP}px ${BAR_WIDTH}px ${RIBBON_GAP}px ${BAR_WIDTH}px`,
-            paddingTop: `${BASELINE_Y - 14}px`,
+            gridTemplateColumns: `${BAR_WIDTH}fr ${RIBBON_GAP}fr ${BAR_WIDTH}fr ${RIBBON_GAP}fr ${BAR_WIDTH}fr`,
+            top: `${((BASELINE_Y - BAR_MAX_HEIGHT / 2 - 16) / CHART_HEIGHT) * 100}%`,
           }}
         >
           <div />
-          <div className="text-center">
-            <span
-              className={
-                data.applications.count >= MIN_N_FOR_CONVERSION
-                  ? 'rounded-[4px] bg-elevated px-1.5 py-0.5 font-mono text-[11px] font-semibold text-ink-secondary shadow-sm'
-                  : 'rounded-[4px] bg-elevated px-1.5 py-0.5 font-mono text-[11px] text-ink-muted shadow-sm'
-              }
-            >
-              {conversion(data.applications.count, data.interviews.count)}
-            </span>
-          </div>
+          <ConversionPill
+            from={data.applications.count}
+            to={data.interviews.count}
+            sourceLabel="apps"
+            pct={conversionPct(data.applications.count, data.interviews.count)}
+            highlighted={hoverStage === 'interviews' || hoverStage === 'applications'}
+          />
           <div />
-          <div className="text-center">
-            <span
-              className={
-                data.interviews.count >= MIN_N_FOR_CONVERSION
-                  ? 'rounded-[4px] bg-elevated px-1.5 py-0.5 font-mono text-[11px] font-semibold text-ink-secondary shadow-sm'
-                  : 'rounded-[4px] bg-elevated px-1.5 py-0.5 font-mono text-[11px] text-ink-muted shadow-sm'
-              }
-            >
-              {conversion(data.interviews.count, data.offers.count)}
-            </span>
-          </div>
+          <ConversionPill
+            from={data.interviews.count}
+            to={data.offers.count}
+            sourceLabel="interviews"
+            pct={conversionPct(data.interviews.count, data.offers.count)}
+            highlighted={hoverStage === 'offers' || hoverStage === 'interviews'}
+          />
           <div />
         </div>
       </div>
@@ -272,12 +268,76 @@ export function PipelineFunnelChart({ data }: { data: FunnelData }) {
       </div>
 
       {/* Legend */}
-      <div className="mt-4 flex items-center gap-4 border-t border-line pt-3 text-[11px] text-ink-muted">
-        <span>
-          <strong className="text-ink-secondary">Conversion %</strong> shown
-          when stage has {MIN_N_FOR_CONVERSION}+ jobs. Below that, sample is
-          too small to interpret.
-        </span>
+      <div className="mt-4 space-y-1 border-t border-line pt-3 text-[11px] text-ink-muted">
+        <p>
+          <strong className="text-ink-secondary">Bars</strong> = jobs at or
+          past each stage.{' '}
+          <strong className="text-ink-secondary">Ribbon slope</strong> = how
+          much of the cohort dropped off between stages — gentler slope is
+          higher conversion.{' '}
+          <strong className="text-ink-secondary">Pill on each ribbon</strong>{' '}
+          = exact ratio and percentage.
+        </p>
+        <p>
+          Conversion shown only when source stage has{' '}
+          {MIN_N_FOR_CONVERSION}+ jobs (smaller samples produce meaningless
+          rates).
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function ConversionPill({
+  from,
+  to,
+  sourceLabel,
+  pct,
+  highlighted,
+}: {
+  from: number
+  to: number
+  sourceLabel: string
+  pct: string
+  highlighted: boolean
+}) {
+  const enoughData = from >= MIN_N_FOR_CONVERSION
+  return (
+    <div className="flex justify-center">
+      <div
+        className={`pointer-events-auto inline-flex items-center gap-1 rounded-[6px] border px-2 py-1 shadow-sm transition-colors ${
+          highlighted
+            ? 'border-warmth-referral bg-elevated'
+            : 'border-line bg-elevated'
+        }`}
+        title={
+          enoughData
+            ? `${to} of ${from} ${sourceLabel} progressed to the next stage`
+            : `Only ${from} ${sourceLabel} so far — need ${MIN_N_FOR_CONVERSION}+ to compute a meaningful conversion rate`
+        }
+      >
+        {enoughData ? (
+          <>
+            <span className="font-mono text-[12px] font-semibold text-ink">
+              {to}
+            </span>
+            <span className="text-[11px] text-ink-muted">of</span>
+            <span className="font-mono text-[12px] font-semibold text-ink-secondary">
+              {from}
+            </span>
+            <ArrowRight size={10} className="text-ink-muted" />
+            <span className="font-mono text-[12px] font-semibold text-warmth-referral">
+              {pct}
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.04em] text-ink-muted">
+              converted
+            </span>
+          </>
+        ) : (
+          <span className="text-[11px] text-ink-muted">
+            need {MIN_N_FOR_CONVERSION}+ to compute
+          </span>
+        )}
       </div>
     </div>
   )

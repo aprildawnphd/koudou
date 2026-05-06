@@ -39,7 +39,9 @@ A focused job-search CRM. Built from a static design-handoff prototype (`design_
 
 ## Demo
 
-A private demo runs at **https://koudou.pages.dev/**. Sign-in is gated to a Google "Test users" allowlist. See [`DEMO.md`](DEMO.md) for how to request access, what gets seeded, and how to host your own.
+A private demo runs at **https://koudou.pages.dev/**. Sign-in is invite-only via a shared code; email April for access. See [`DEMO.md`](DEMO.md) for the full flow, what gets seeded, and how to host your own.
+
+> **Heads-up:** AI Job Search currently returns AI-generated *suggestions*, not real postings. Real-web-search foundation is being rebuilt — a Lovable feature regression we caught during design review. Cover Letters, Skill Gap, and Weekly Plan all work as expected.
 
 ## Stack
 

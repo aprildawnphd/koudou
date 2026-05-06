@@ -22,8 +22,14 @@ type SuggestedJob = {
   url: string
   posted_ago?: string
   hiring_contact?: string
-  job_source: string
+  job_source: 'web' | 'ai-suggestion' | string // tolerate older shape during rollout
   skills: string[]
+}
+
+type SearchMeta = {
+  webResults?: number
+  aiSuggestions?: number
+  totalResults?: number
 }
 
 const inputClass =
@@ -89,6 +95,7 @@ export function Search() {
   const [resultCount, setResultCount] = useState(10)
   const [running, setRunning] = useState(false)
   const [results, setResults] = useState<SuggestedJob[] | null>(null)
+  const [meta, setMeta] = useState<SearchMeta | null>(null)
   const [error, setError] = useState<{ message: string; retryable: boolean } | null>(null)
   const [formExpanded, setFormExpanded] = useState(true)
 
@@ -112,10 +119,12 @@ export function Search() {
     setError(null)
     setRunning(true)
     setResults(null)
+    setMeta(null)
     try {
       const payload = await invokeEdge<{
         success?: boolean
         data?: SuggestedJob[]
+        meta?: SearchMeta
       }>('ai-job-search', {
         searchParams: {
           resultCount,
@@ -125,6 +134,7 @@ export function Search() {
         },
       })
       setResults(payload.data ?? [])
+      setMeta(payload.meta ?? null)
       // Collapse the form once results land — gives the results list more
       // vertical room. User can re-expand via the chip's Edit button.
       setFormExpanded(false)
@@ -376,7 +386,7 @@ export function Search() {
         {/* Results */}
         {results && results.length > 0 && (
           <section className="mx-7">
-            <div className="mb-2 flex items-baseline gap-3 py-2">
+            <div className="mb-2 flex flex-wrap items-baseline gap-3 py-2">
               <span className="text-[11px] font-semibold tracking-[0.08em] text-ink-muted uppercase">
                 Results
               </span>
@@ -385,11 +395,33 @@ export function Search() {
                 by match score
                 <MatchScoreHelp />
               </span>
+              {meta && (meta.webResults ?? 0) + (meta.aiSuggestions ?? 0) > 0 && (
+                <span className="ml-auto inline-flex items-center gap-2 text-[11px] text-ink-muted">
+                  {(meta.webResults ?? 0) > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-[4px] bg-warmth-referral/15 px-1.5 py-0.5 font-medium text-warmth-referral">
+                      ◉ {meta.webResults} from web
+                    </span>
+                  )}
+                  {(meta.aiSuggestions ?? 0) > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-[4px] bg-hover px-1.5 py-0.5 font-medium text-ink-secondary">
+                      ◌ {meta.aiSuggestions} AI suggestion
+                      {meta.aiSuggestions === 1 ? '' : 's'}
+                    </span>
+                  )}
+                </span>
+              )}
             </div>
-            {results.map((r, idx) => (
+            {results.map((r, idx) => {
+              const isAiSuggestion = r.job_source === 'ai-suggestion'
+              return (
               <div
                 key={`${r.company}-${r.title}-${idx}`}
-                className="mb-2 rounded-[10px] border border-line bg-elevated p-4"
+                className={cn(
+                  'mb-2 rounded-[10px] border p-4',
+                  isAiSuggestion
+                    ? 'border-dashed border-line bg-app-bg'
+                    : 'border-line bg-elevated',
+                )}
               >
                 <div className="flex items-start gap-3">
                   <CompanyFavicon name={r.company} size={32} />
@@ -400,6 +432,16 @@ export function Search() {
                       </span>
                       <span className="text-[13px] text-ink-muted">
                         {r.company}
+                      </span>
+                      <span
+                        className={cn(
+                          'ml-1 rounded-[3px] px-1.5 py-0.5 text-[10px] font-semibold tracking-[0.04em] uppercase',
+                          isAiSuggestion
+                            ? 'bg-hover text-ink-muted'
+                            : 'bg-warmth-referral/15 text-warmth-referral',
+                        )}
+                      >
+                        {isAiSuggestion ? 'AI Suggestion' : 'Web result'}
                       </span>
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-ink-secondary">
@@ -449,13 +491,15 @@ export function Search() {
                         rel="noreferrer noopener"
                         className="inline-flex items-center gap-1 text-[12px] font-medium text-accent-strong hover:underline"
                       >
-                        Careers <ExternalLink size={11} />
+                        {isAiSuggestion ? 'Careers page' : 'Open posting'}{' '}
+                        <ExternalLink size={11} />
                       </a>
                     )}
                   </div>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </section>
         )}
 

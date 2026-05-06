@@ -1,4 +1,4 @@
-// AI Job Search — Phase A (AI-suggestions only)
+// AI Job Search — real-web-search foundation (Session 6.2 rebuild)
 // ─────────────────────────────────────────────────────────────────────────
 // POST request body:
 //   {
@@ -11,15 +11,28 @@
 //     }
 //   }
 //
-// Reads the user's profile from `profiles` (resume, summary, target_roles,
-// locations, remote_preference, salary, must_haves/nice_to_haves, industries,
-// skills) and asks Claude Sonnet 4.6 to generate ranked job suggestions
-// using tool use for structured output.
+// Hybrid flow (replaces the prior pure-hallucination implementation):
+//   1. Reads the user's profile from `profiles`
+//   2. Calls Anthropic Sonnet 4.6 with TWO tools enabled:
+//      - `web_search` (server tool) — Claude executes real web searches
+//      - `generate_jobs` (client tool) — Claude returns structured ranked results
+//   3. Claude searches up to 4 times (different queries from the profile),
+//      scores real postings against the profile, supplements with clearly-
+//      labeled "AI Suggestions" only if real results are insufficient.
+//   4. We extract the `generate_jobs` tool_use input as the structured response.
 //
-// Phase B (Firecrawl real-web search of job boards before AI scoring) is
-// deferred to a later session. See PROJECT.md "Maybe pull from Lovable".
+// Hard rules (enforced via system prompt):
+//   - Real web results keep their EXACT URLs from search results
+//   - AI Suggestions use careers-page URLs only — never fabricate posting URLs
+//   - job_source is "web" for real postings, "ai-suggestion" for fallbacks
 //
-// Rate limited: 5 calls per hour per user.
+// Prerequisite: web search must be enabled in the Anthropic Console (Settings
+// → Privacy). Without it the API rejects the tool.
+//
+// Pricing: $10 per 1,000 web searches + standard token costs. At 5/day rate
+// limit × ~4 searches/call × ~30 demo users = ~600 searches/month max ≈ $6/mo.
+//
+// Rate limit: 10 calls per day per user (owner exempted).
 // ─────────────────────────────────────────────────────────────────────────
 
 import Anthropic from 'npm:@anthropic-ai/sdk@0.65.0'
@@ -31,29 +44,34 @@ const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')
 
 const CREATIVITY_MAP: Record<string, string> = {
   conservative:
-    "Stick very closely to the candidate's exact target roles and industries. Only suggest roles that are a near-perfect match.",
+    "Stick very closely to the candidate's exact target roles and industries. Only include roles that are a near-perfect match.",
   balanced:
-    'Suggest a mix of close matches and some stretch opportunities that leverage transferable skills.',
+    'Include a mix of close matches and some stretch opportunities that leverage transferable skills.',
   exploratory:
     "Cast a wide net. Include adjacent roles, unexpected industries, and creative lateral moves that could leverage the candidate's experience in novel ways.",
 }
 
-const RECENCY_MAP: Record<string, string> = {
-  '3days': 'posted within the last 3 days',
-  '1week': 'posted within the last week',
-  '2weeks': 'posted within the last 2 weeks',
-  '1month': 'posted within the last month',
+const RECENCY_INSTRUCTION_MAP: Record<string, string> = {
+  '3days': 'Prefer jobs posted within the last 3 days.',
+  '1week': 'Prefer jobs posted within the last week.',
+  '2weeks': 'Prefer jobs posted within the last 2 weeks.',
+  '1month': 'Prefer jobs posted within the last month.',
   any: '',
 }
 
+// Structured output schema. job_source is now a real enum so the UI can
+// distinguish real web results from AI-fabricated fallbacks.
 const generateJobsTool = {
   name: 'generate_jobs',
-  description: 'Return a list of matching job opportunities for the candidate.',
+  description:
+    'Return the final ranked list of matching job opportunities for the candidate. Use this tool ONCE at the end of your turn after completing all web searches.',
   input_schema: {
     type: 'object',
     properties: {
       jobs: {
         type: 'array',
+        description:
+          'Ranked list of jobs. Real web results first (job_source="web"), then AI suggestions only if needed (job_source="ai-suggestion").',
         items: {
           type: 'object',
           properties: {
@@ -70,7 +88,8 @@ const generateJobsTool = {
             },
             salary: {
               type: 'string',
-              description: 'Salary range, e.g. $200K-$260K',
+              description:
+                'Salary range if known from the posting, e.g. "$200K-$260K". Empty string if not specified.',
             },
             match_score: {
               type: 'number',
@@ -78,32 +97,35 @@ const generateJobsTool = {
             },
             match_reason: {
               type: 'string',
-              description: 'Why this is a good match in 1-2 sentences',
+              description:
+                "Why this is a good match in 1-2 sentences. Specific to the candidate's profile.",
             },
             url: {
               type: 'string',
               description:
-                "Company careers page URL (e.g. company.com/careers) — never fabricate a specific job posting URL",
+                'For job_source="web": the EXACT URL from the search result (keep verbatim, never modify). For job_source="ai-suggestion": the company\'s main careers page URL (e.g. company.com/careers) — never fabricate a specific job posting URL.',
             },
             posted_ago: {
               type: 'string',
               description:
-                "Approximate posting recency, e.g. '2 days ago', '1 week ago'",
+                "Posting recency from the search result if available (e.g. 'page_age: April 2025'). Empty string if not available.",
             },
             hiring_contact: {
               type: 'string',
               description:
-                'Hiring manager or recruiter name and title if available, otherwise empty',
+                'Hiring manager or recruiter name if mentioned in the posting; otherwise empty string.',
             },
             job_source: {
               type: 'string',
-              description: 'Always "AI Suggestion" for Phase A',
+              enum: ['web', 'ai-suggestion'],
+              description:
+                '"web" if extracted from a real web search result with a real URL. "ai-suggestion" if generated to supplement insufficient web results.',
             },
             skills: {
               type: 'array',
               items: { type: 'string' },
               description:
-                'Top 10 key skills and technologies for this role',
+                'Top 10 key skills/technologies for this role (extracted from the posting if real, inferred from role+industry if AI-suggestion).',
             },
           },
           required: [
@@ -167,7 +189,6 @@ Deno.serve(async (req) => {
     const creativityLevel = searchParams.creativityLevel ?? 'balanced'
     const focusKeywords: string = searchParams.focusKeywords ?? ''
 
-    // Pull the user's profile from `profiles`.
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
@@ -195,7 +216,6 @@ Deno.serve(async (req) => {
     }
     const profilesRaw = await profileRes.json()
     if (!Array.isArray(profilesRaw)) {
-      console.error('profile response not an array:', profilesRaw)
       return new Response(
         JSON.stringify({
           error: `Profile lookup returned unexpected shape: ${JSON.stringify(profilesRaw).slice(0, 200)}`,
@@ -206,9 +226,6 @@ Deno.serve(async (req) => {
         },
       )
     }
-    console.log(
-      `profile lookup for ${userId}: found ${profilesRaw.length} rows`,
-    )
     const profile = profilesRaw[0]
     if (!profile) {
       return new Response(
@@ -241,7 +258,7 @@ Deno.serve(async (req) => {
       `LOCATIONS: ${
         anyLocation
           ? 'Any Location (no preference)'
-          : profile.locations?.join(', ') ?? 'Not specified'
+          : (profile.locations?.join(', ') ?? 'Not specified')
       }`,
       `REMOTE PREFERENCE: ${profile.remote_preference ?? 'Not specified'}`,
       profile.min_base_salary
@@ -264,7 +281,7 @@ Deno.serve(async (req) => {
       .filter(Boolean)
       .join('\n')
 
-    const recencyInstruction = RECENCY_MAP[recencyFilter] || ''
+    const recencyInstruction = RECENCY_INSTRUCTION_MAP[recencyFilter] || ''
     const creativityInstruction =
       CREATIVITY_MAP[creativityLevel] || CREATIVITY_MAP.balanced
 
@@ -274,39 +291,34 @@ Deno.serve(async (req) => {
           .join('\n')}`
       : ''
 
-    const paramInstructions = [
-      `Generate up to ${resultCount} matching companies and roles to research. For each, set job_source to "AI Suggestion" and use the company's main careers page URL only — never fabricate a specific job posting URL.`,
-      minMatchScore > 0
-        ? `Only include jobs with a match_score of ${minMatchScore} or higher.`
-        : '',
-      remoteOnly ? 'Only include REMOTE positions.' : '',
-      recencyInstruction
-        ? `Prefer jobs that would have been ${recencyInstruction}.`
-        : '',
-      creativityInstruction,
-      focusKeywords
-        ? `Focus areas: ${focusKeywords}. Prioritize roles emphasizing these.`
-        : '',
-    ]
-      .filter(Boolean)
-      .join('\n')
+    const systemPrompt = `You are a job search assistant. Find real, currently-open job postings that match the candidate's profile, then return the structured ranked list via the generate_jobs tool.
 
-    const systemPrompt = `You are a job search assistant. Given a candidate's profile, generate ranked AI-suggested job opportunities.
+PROCESS:
+1. Plan 3-4 search queries based on the candidate's target roles, locations, and any focus keywords. Vary the queries to cover different roles or location combinations — don't repeat the same query.
+2. Use the web_search tool to execute the queries. Prefer queries that target job boards (LinkedIn, Greenhouse, Lever, Wellfound, Hacker News Who's Hiring, company careers pages, etc.).
+3. After your last search, review all results. Score each REAL posting against the candidate's profile.
+4. If you have FEWER than ${resultCount} real postings that score above ${minMatchScore}, supplement with clearly-labeled AI Suggestions to reach the target count. Do NOT generate AI Suggestions if you already have enough real postings.
+5. Return the final ranked list (real first, AI suggestions last) via the generate_jobs tool.
 
-${paramInstructions}
+HARD RULES — VIOLATING THESE PRODUCES UNUSABLE OUTPUT:
+- For job_source="web": URL must be the EXACT url from the search result. Do not modify, shorten, or fabricate any part of it.
+- For job_source="ai-suggestion": URL must be the company's careers page (e.g., "stripe.com/careers"). Never fabricate a specific job-posting URL.
+- Match scores must reflect honest fit assessment against the profile. Do not inflate.
+- ${remoteOnly ? 'ONLY include REMOTE positions.' : ''}
+- ${recencyInstruction}
+- ${creativityInstruction}
+${focusKeywords ? `- Focus areas: ${focusKeywords}. Prioritize roles emphasizing these.` : ''}
 
-IMPORTANT RULES:
-- Use real company names that actually hire for these roles.
-- Set job_source to "AI Suggestion".
-- Use the company's main careers page URL only — never fabricate a specific job posting URL.
-- match_score values must honestly reflect how well the job fits the candidate.
-- You MUST call the generate_jobs tool with the results.`
+Return UP TO ${resultCount} jobs total. Quality over quantity — better to return 4 strong real matches than 10 weak ones.${dismissedContext}`
 
-    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY, maxRetries: 4 })
+    const anthropic = new Anthropic({
+      apiKey: ANTHROPIC_API_KEY,
+      maxRetries: 4,
+    })
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: [
         {
           type: 'text',
@@ -314,29 +326,51 @@ IMPORTANT RULES:
           cache_control: { type: 'ephemeral' },
         },
       ],
-      tools: [generateJobsTool],
-      tool_choice: { type: 'tool', name: 'generate_jobs' },
+      tools: [
+        {
+          type: 'web_search_20250305',
+          name: 'web_search',
+          max_uses: 4,
+        },
+        generateJobsTool,
+      ],
       messages: [
         {
           role: 'user',
           content: [
             {
               type: 'text',
-              text: `Find matching job opportunities for this candidate:\n\n${profileContext}`,
+              text: `Find current open positions matching this candidate:\n\n${profileContext}`,
               cache_control: { type: 'ephemeral' },
-            },
-            {
-              type: 'text',
-              text: dismissedContext || 'No dismissed jobs.',
             },
           ],
         },
       ],
     })
 
-    const toolUseBlock = message.content.find((b) => b.type === 'tool_use')
+    // Extract the generate_jobs tool call. The model may have used web_search
+    // multiple times before this — those are server-executed and don't need
+    // handling here. We just want the final structured output.
+    const toolUseBlock = message.content.find(
+      (b) => b.type === 'tool_use' && b.name === 'generate_jobs',
+    )
     if (!toolUseBlock || toolUseBlock.type !== 'tool_use') {
-      throw new Error('AI did not return structured data')
+      console.error(
+        'generate_jobs tool was not called. Stop reason:',
+        message.stop_reason,
+        'Content blocks:',
+        message.content.map((b) => b.type),
+      )
+      return new Response(
+        JSON.stringify({
+          error:
+            'AI did not return structured results. The web search may have failed or returned no usable results — try again with different search parameters.',
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      )
     }
     const result = toolUseBlock.input as { jobs?: unknown[] }
     const jobs = Array.isArray(result.jobs) ? result.jobs : []
@@ -348,13 +382,23 @@ IMPORTANT RULES:
         ((a as { match_score?: number }).match_score ?? 0),
     )
 
+    const webCount = jobs.filter(
+      (j) => (j as { job_source?: string }).job_source === 'web',
+    ).length
+    const aiSuggestionCount = jobs.length - webCount
+
+    const usage = message.usage as typeof message.usage & {
+      server_tool_use?: { web_search_requests?: number }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         data: jobs,
         meta: {
-          aiSuggestions: jobs.length,
-          phase: 'A',
+          webResults: webCount,
+          aiSuggestions: aiSuggestionCount,
+          totalResults: jobs.length,
         },
         usage: {
           input_tokens: message.usage.input_tokens,
@@ -363,6 +407,7 @@ IMPORTANT RULES:
             message.usage.cache_creation_input_tokens ?? 0,
           cache_read_input_tokens:
             message.usage.cache_read_input_tokens ?? 0,
+          web_search_requests: usage.server_tool_use?.web_search_requests ?? 0,
         },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

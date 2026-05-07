@@ -16,7 +16,7 @@
 //   2. Calls Anthropic Sonnet 4.6 with TWO tools enabled:
 //      - `web_search` (server tool) — Claude executes real web searches
 //      - `generate_jobs` (client tool) — Claude returns structured ranked results
-//   3. Claude searches up to 4 times (different queries from the profile),
+//   3. Claude searches up to 2 times (different queries from the profile),
 //      scores real postings against the profile, supplements with clearly-
 //      labeled "AI Suggestions" only if real results are insufficient.
 //   4. We extract the `generate_jobs` tool_use input as the structured response.
@@ -29,10 +29,11 @@
 // Prerequisite: web search must be enabled in the Anthropic Console (Settings
 // → Privacy). Without it the API rejects the tool.
 //
-// Pricing: $10 per 1,000 web searches + standard token costs. At 5/day rate
-// limit × ~4 searches/call × ~30 demo users = ~600 searches/month max ≈ $6/mo.
+// Pricing: $10 per 1,000 web searches + standard token costs. At 3/day rate
+// limit × ~2 searches/call × ~30 demo users = ~180 searches/month max ≈ $1.80/mo.
 //
-// Rate limit: 10 calls per day per user (owner exempted).
+// Rate limit: 3 calls per day per user (owner exempted). max_uses=2 keeps
+// per-call input under the Tier 1 30k TPM ceiling.
 // ─────────────────────────────────────────────────────────────────────────
 
 import Anthropic from 'npm:@anthropic-ai/sdk@0.65.0'
@@ -300,25 +301,21 @@ Deno.serve(async (req) => {
     const systemPrompt = `You are a job search assistant. Find real, currently-open job postings that match the candidate's profile, then return the structured ranked list via the generate_jobs tool.
 
 PROCESS:
-1. Plan 3-4 search queries based on the candidate's target roles, locations, and any focus keywords. Vary the queries to cover different roles or location combinations — don't repeat the same query.
-2. Use the web_search tool to execute the queries. Prefer queries that target job boards (LinkedIn, Greenhouse, Lever, Wellfound, Hacker News Who's Hiring, company careers pages, etc.).
-3. After your last search, review all results. Score each REAL posting against the candidate's profile.
-4. If you have FEWER than ${resultCount} real postings that score above ${minMatchScore}, supplement with clearly-labeled AI Suggestions to reach the target count. Do NOT generate AI Suggestions if you already have enough real postings.
-5. Return the final ranked list (real first, AI suggestions last) via the generate_jobs tool.
+1. Plan 2 distinct search queries from the candidate's target roles, locations, and any focus keywords — vary them to cover different roles or location combos.
+2. Run them via web_search. Prefer job boards (LinkedIn, Greenhouse, Lever, Wellfound, Hacker News Who's Hiring, company careers pages).
+3. Score each real posting against the profile. If FEWER than ${resultCount} score above ${minMatchScore}, fill the gap with clearly-labeled AI Suggestions; otherwise don't generate any.
+4. Return the ranked list (real first, AI Suggestions last) via generate_jobs.
 
-HARD RULES — VIOLATING THESE PRODUCES UNUSABLE OUTPUT:
-- For job_source="web": URL must be the EXACT url from the search result. Do not modify, shorten, or fabricate any part of it.
-- For job_source="ai-suggestion": URL must be the company's careers page (e.g., "stripe.com/careers"). Never fabricate a specific job-posting URL.
-- Match scores must reflect honest fit assessment against the profile. Do not inflate.
-- "description" field is a 1-sentence factual summary of what the role IS (team, scope, company). Do NOT explain why it matches the candidate here.
-- "match_reason" field is 1-2 sentences explaining WHY this is a good match for THIS candidate, citing specific dimensions (role, location, salary, skills overlap, industry). Do NOT describe the role here.
-- These fields must NOT duplicate each other. Description = "what is this?" Match reason = "why does this fit me?"
-- ${remoteOnly ? 'ONLY include REMOTE positions.' : ''}
+HARD RULES:
+- URLs: web sources keep the EXACT search-result URL verbatim; ai-suggestion sources use the company's careers page only — never fabricate posting URLs.
+- "description" = 1 sentence on what the role IS (team, scope, company). "match_reason" = 1-2 sentences on WHY it fits THIS candidate, citing specific dimensions (role, location, salary, skills, industry). Do not duplicate between fields.
+- Score honestly. Don't inflate.
+- ${remoteOnly ? 'Remote positions only.' : ''}
 - ${recencyInstruction}
 - ${creativityInstruction}
-${focusKeywords ? `- Focus areas: ${focusKeywords}. Prioritize roles emphasizing these.` : ''}
+${focusKeywords ? `- Focus areas: ${focusKeywords}.` : ''}
 
-Return UP TO ${resultCount} jobs total. Quality over quantity — better to return 4 strong real matches than 10 weak ones.${dismissedContext}`
+Return up to ${resultCount} jobs. Quality > quantity — 4 strong real matches beats 10 weak ones.${dismissedContext}`
 
     const anthropic = new Anthropic({
       apiKey: ANTHROPIC_API_KEY,
@@ -339,7 +336,7 @@ Return UP TO ${resultCount} jobs total. Quality over quantity — better to retu
         {
           type: 'web_search_20250305',
           name: 'web_search',
-          max_uses: 4,
+          max_uses: 2,
         },
         generateJobsTool,
       ],

@@ -9,7 +9,7 @@ type Tab = 'funnel' | 'skills' | 'weekly-plan'
 
 const TABS: { id: Tab; label: string; icon: typeof BarChart3 }[] = [
   { id: 'funnel', label: 'Pipeline funnel', icon: BarChart3 },
-  { id: 'skills', label: 'Skill gap', icon: Sparkles },
+  { id: 'skills', label: 'Skills', icon: Sparkles },
   { id: 'weekly-plan', label: 'Weekly plan', icon: CalendarDays },
 ]
 

@@ -1,6 +1,17 @@
 # Koudou
 
-A focused job-search CRM. Built from a static design-handoff prototype (`design_handoff_koudou`, currently private).
+**A job-search workspace for the relationship-first era.**
+
+For mid-career PMs running 10+ concurrent pursuits, Koudou maps your network,
+surfaces paths into target companies, and recommends the next move to improve
+offer odds — operationalizing relationship-first job search in a familiar
+productivity-tool interface.
+
+📋 **Product context:** see [`PRODUCT.md`](./PRODUCT.md) for the full value
+proposition (thesis · UX · intelligence), persona, JTBDs, and competitive
+landscape.
+
+Built from a static design-handoff prototype (`design_handoff_koudou`, currently private).
 
 ## What it looks like
 
@@ -41,7 +52,12 @@ A focused job-search CRM. Built from a static design-handoff prototype (`design_
 
 A private demo runs at **https://koudou.pages.dev/**. Sign-in is invite-only via a shared code; email April for access. See [`DEMO.md`](DEMO.md) for the full flow, what gets seeded, and how to host your own.
 
-> **Note on AI features:** AI Job Search uses Anthropic's web_search tool to find real postings on job boards; results are visually labeled as "Web result" (real URL) or "AI Suggestion" (fallback when web search returns sparse results, points to careers page). Cover Letters, Skill Gap, and Weekly Plan run on your pipeline data. Daily quotas: 10 searches/day, 5 letters/day, 5 skill gaps/day, 5 plans/day per user.
+> **Note on AI features:**
+> - **AI Job Search** uses Anthropic's `web_search` tool to find real postings on job boards; results are visually labeled as "Web result" (real URL) or "AI Suggestion" (fallback when web search returns sparse results, points to careers page).
+> - **Cover Letters** generate from your profile + resume context.
+> - **Weekly Plan** generates a 3-5 action plan from your pipeline state, scoreboard, and entity context.
+> - **Skills tab** runs on persisted skill snapshots extracted at job-add time by a Haiku 4.5 pipeline — no AI quota cost when viewing.
+> - **Daily AI quotas (per user, non-owner):** 3 searches/day, 5 letters/day, 5 weekly plans/day. Owner exempt via `OWNER_USER_IDS` env var.
 
 ## Stack
 
@@ -49,7 +65,10 @@ A private demo runs at **https://koudou.pages.dev/**. Sign-in is invite-only via
 - **UI:** React 19 + Tailwind CSS v4 + shadcn/ui (Radix primitives)
 - **Routing:** React Router 7
 - **State:** TanStack Query (server) + Zustand (UI)
-- **Backend:** Supabase (Postgres + Auth + Storage)
+- **Backend:** Supabase (Postgres + Auth + Storage + Edge Functions on Deno)
+- **AI:** Anthropic SDK — Claude Sonnet 4.6 (search, letters, weekly plan) + Haiku 4.5 (skill extraction) + `web_search_20250305` server tool
+- **Email:** Resend SMTP (magic-link auth)
+- **Deploy:** Cloudflare Pages (auto-deploy from `main`) — private demo at [koudou.pages.dev](https://koudou.pages.dev/)
 - **Package mgr:** pnpm
 - **Node:** ≥20
 
@@ -148,23 +167,23 @@ src/
 
 ## Routes
 
-| Path               | Page             | Status (Session 1)        |
-| ------------------ | ---------------- | ------------------------- |
-| `/auth`            | Sign in / sign up | ✅ Wired to Supabase     |
-| `/getting-started` | Entry-point chooser | ⏳ Stub                |
-| `/today`           | Session home     | ⏳ Stub                   |
-| `/jobs`            | Pipeline         | ⏳ Stub (Session 2)       |
-| `/network`         | Contacts by warmth | ⏳ Stub (Session 4)     |
-| `/interviews`      | Interview calendar | ⏳ Stub                 |
-| `/targets`         | Target Companies | ⏳ Stub (Session 4)       |
-| `/boards`          | Job Boards       | ⏳ Stub (Session 6)       |
-| `/search`          | AI Job Search    | ⏳ Stub (Session 5)       |
-| `/resumes`         | Resume library   | ⏳ Stub                   |
-| `/letters`         | Cover Letters    | ⏳ Stub (Session 5)       |
-| `/insights`        | Recap / Funnel / Skills | ⏳ Stub (Session 6) |
-| `/profile`         | Search profile   | ⏳ Stub                   |
-| `/settings`        | Account + integrations | ⏳ Stub             |
-| `/help`            | Docs + shortcuts | ⏳ Stub                   |
+| Path               | Page                      | Status |
+| ------------------ | ------------------------- | ------ |
+| `/auth`            | Sign in (magic-link + Google OAuth + invite code) | ✅ Wired to Supabase |
+| `/getting-started` | Entry-point chooser + demo seed + backfill | ✅ Built |
+| `/today`           | Greeting + Up Next queue + This Week strip | ✅ Built (Session 3) |
+| `/jobs`            | Pipeline — status-grouped Linear-style table | ✅ Built (Session 2) |
+| `/network`         | Contacts grouped by warmth (Champions / Warm / Cold) | ✅ Built (Session 4) |
+| `/interviews`      | Interview calendar         | ⏳ Stub |
+| `/targets`         | Target Companies (three-tier with per-row aggregates) | ✅ Built (Session 4) |
+| `/boards`          | Job Boards                 | ⏳ Stub |
+| `/search`          | AI Job Search — Anthropic `web_search` + AI-Suggestion fallback | ✅ Built (Sessions 5 + 6.2) |
+| `/resumes`         | Resume library             | ⏳ Stub |
+| `/letters`         | Cover Letters — AI-generated, profile-aware | ✅ Built (Session 5) |
+| `/insights`        | Funnel + Skills + Weekly Plan tabs | ✅ Built (Sessions 6 + 6.1 + 6.4) |
+| `/profile`         | Search profile + completeness scoring | ✅ Built (Session 5) |
+| `/settings`        | Account + integrations    | ⏳ Stub |
+| `/help`            | Docs + shortcuts          | ⏳ Stub |
 
 ## Design tokens
 
@@ -182,12 +201,18 @@ author for commercial licensing. See [NOTICE.md](./NOTICE.md).
 
 ## Roadmap
 
-Sessions are scoped tight in `../design_handoff_koudou/README.md`:
-
 1. ✅ **Session 1** — Scaffold + sidebar shell + auth route
 2. ✅ **Session 2** — Schema + Pipeline (Jobs) view + DetailPanel + Google OAuth
 3. ✅ **Session 3** — Today view + actionEngine port
 4. ✅ **Session 4** — Network + Target Companies + Getting Started + brand marks
-5. **Session 5** — AI features (Job Search → Cover Letters → Skill Gap)
-6. **Session 6** — Insights + Job Boards + Library polish
-7. **Session 7** — Command palette, polish, deploy
+5. ✅ **Session 5** — AI features (AI Job Search, Cover Letters) + Profile + private demo deploy
+   - **5.5** — Magic-link auth + invite-code demo gate + tighter AI rate limits + Resend SMTP
+6. ✅ **Session 6** — Insights surface (Funnel + Skills + Weekly Plan tabs)
+   - **6.1** — Pipeline Funnel rebuild (Pendo-style cohort flow viz)
+   - **6.2** — AI Job Search rebuild on real web search (Anthropic `web_search_20250305`)
+   - **6.3** — Skill extraction pipeline (`job_skills_snapshots` + Haiku 4.5 extractor)
+   - **6.4** — Skills tab rebuild on real data (Pipeline / Trending / Resume audit sub-views)
+   - **6.5** — Weekly Plan JTBD design review
+7. 🔄 **v2 — Unified workspace rebuild** *(in scoping)* — replaces the originally-planned Sessions 6.6/6.7/6.8/7 after the 2026-05-18 architectural pivot. See [`PRODUCT.md`](./PRODUCT.md) for the differentiation thesis driving the rebuild.
+
+Detailed session plans live in `../design_handoff_koudou/README.md` (v1 scope) and `_private/V2_ARCHITECTURE.md` (v2 scope, gitignored working doc).

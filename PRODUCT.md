@@ -7,6 +7,44 @@
 > network, surface paths into target companies, and recommend the next move
 > that'll improve your odds of an offer.
 
+## Value proposition
+
+Koudou wins on three layers:
+
+**1. Thesis — relationship-first job search is the new right to win**
+
+Job-seekers in 2026 don't win by sending more applications; they win by
+prescriptive targeting of specific companies, building warm paths into them
+through their network, and applying with context. Koudou is built around this
+paradigm — relationships are first-class, not a sidecar feature.
+
+**2. UX — familiar productivity-workspace interface**
+
+No new mental model to learn. If you've used Linear, Asana, or Notion,
+Koudou's surfaces (status-grouped tables, filter chips, Kanban) are
+immediately recognizable — but every column, filter, and pill is opinionated
+about job-search semantics. Onboarding is fast because the interaction
+conventions are already in muscle memory.
+
+**3. Intelligence — AI woven through, not bolted on**
+
+Koudou understands the graph of contacts ↔ roles ↔ target companies, and
+traverses it to surface specific next moves: *"Sarah at OpenAI used to work
+at Anthropic, one of your targets — ask her for an intro to her former
+team."* That kind of cross-entity reasoning is hard to replicate in
+general-purpose tools, which see flat lists of items without domain context.
+
+### Positioning statement
+
+**For** mid-career PMs running 10+ concurrent pursuits in active search,
+**who** know that relationships beat cold applications but can't track the
+work across people, roles, and companies,
+**Koudou is** a job-search workspace
+**that** maps your network, recommends specific next moves, and
+operationalizes the relationship-first paradigm —
+**unlike** general-purpose PM tools (no domain awareness) or job-search
+trackers (no relationship graph).
+
 ## Problem
 
 Modern senior-PM job searches succeed through relationships and prescriptive
